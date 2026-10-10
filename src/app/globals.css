@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: #DC2626;
+    --primary-dark: #B91C1C;
+    --primary-light: #EF4444;
+    --primary-subtle: #FEF2F2;
+    --primary-border: #FEE2E2;
+
+    --veg: #16A34A;
+    --veg-bg: #F0FDF4;
+    --veg-border: #BBF7D0;
+
+    --nonveg: #DC2626;
+    --nonveg-bg: #FEF2F2;
+    --nonveg-border: #FECACA;
+
+    --surface: #FFFFFF;
+    --surface-muted: #F9FAFB;
+    --surface-card: #FFFFFF;
+
+    --text-main: #111827;
+    --text-muted: #6B7280;
+    --text-light: #9CA3AF;
+
+    --border: #E5E7EB;
+    --border-light: #F3F4F6;
+  }
+}
+
+body {
+  color: var(--text-main);
+  background-color: #F8FAFC;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Veg / Non-Veg Icons */
+.veg-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #16A34A;
+  border-radius: 3px;
+  background-color: #FFFFFF;
+}
+.veg-badge::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #16A34A;
+}
+
+.nonveg-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid #DC2626;
+  border-radius: 3px;
+  background-color: #FFFFFF;
+}
+.nonveg-badge::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 7px solid #DC2626;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
