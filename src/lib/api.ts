@@ -229,6 +229,17 @@ export async function apiLogin(credentials: {
   return res;
 }
 
+export async function apiGoogleLogin(idToken: string) {
+  const res = await fetchApi<any>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ idToken }),
+  });
+  if (res?.accessToken) {
+    setStoredToken(res.accessToken);
+  }
+  return res;
+}
+
 export async function apiGetMe(): Promise<UserProfile> {
   return fetchApi<UserProfile>('/auth/me');
 }

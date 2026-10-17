@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, User, Phone, Eye, EyeOff, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 
 function SignupForm() {
   const router = useRouter();
@@ -172,6 +173,22 @@ function SignupForm() {
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
+
+        {/* Divider */}
+        <div className="relative flex items-center justify-center my-2">
+          <div className="w-full border-t border-gray-200"></div>
+          <span className="bg-white px-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+            Or
+          </span>
+          <div className="w-full border-t border-gray-200"></div>
+        </div>
+
+        {/* Google Sign-In */}
+        <GoogleSignInButton
+          redirectPath={redirectPath}
+          mode="signup"
+          onError={(msg) => setErrorMsg(msg)}
+        />
 
         <div className="text-center text-xs text-gray-500 pt-2 border-t border-gray-100">
           <span>Already have an account? </span>

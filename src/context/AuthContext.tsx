@@ -2,13 +2,22 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import type { UserProfile } from '@/lib/types';
-import { apiGetMe, apiLogin, apiSignup, apiLogout, getStoredToken, setStoredToken } from '@/lib/api';
+import {
+  apiGetMe,
+  apiLogin,
+  apiGoogleLogin,
+  apiSignup,
+  apiLogout,
+  getStoredToken,
+  setStoredToken,
+} from '@/lib/api';
 
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
   isAuthenticated: boolean;
   login: (credentials: { email: string; password: string }) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   signup: (data: {
     name: string;
     email: string;
@@ -60,6 +69,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const loginWithGoogle = async (idToken: string) => {
+    setLoading(true);
+    try {
+      await apiGoogleLogin(idToken);
+      await refreshUser();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signup = async (data: {
     name: string;
     email: string;
@@ -93,6 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         loading,
         isAuthenticated: Boolean(user),
         login,
+        loginWithGoogle,
         signup,
         logout,
         refreshUser,
