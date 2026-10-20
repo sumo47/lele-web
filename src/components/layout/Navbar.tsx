@@ -190,12 +190,6 @@ export default function Navbar() {
                           <p className="text-[11px] text-gray-500 truncate">{user?.email}</p>
                         </div>
                       </div>
-                      {user?.walletBalance !== undefined && (
-                        <div className="mt-1.5 flex items-center justify-between bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-xs font-medium">
-                          <span>Wallet Balance:</span>
-                          <span className="font-bold">₹{Number(user.walletBalance).toFixed(2)}</span>
-                        </div>
-                      )}
                     </div>
                     <Link
                       href="/account"
