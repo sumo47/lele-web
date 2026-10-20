@@ -102,9 +102,25 @@ export interface UserProfile {
   phone?: string;
   role?: string;
   roles?: string[];
+  avatarUrl?: string | null;
   walletBalance?: number;
   isEmailVerified?: boolean;
   emailVerified?: boolean;
+  createdAt?: string;
+}
+
+export interface UploadImageResult {
+  id: string;
+  url?: string;
+  secureUrl: string;
+  publicId: string;
+  format?: string;
+  width?: number | null;
+  height?: number | null;
+  fileSize?: number;
+  bytes?: number;
+  purpose: string;
+  resourceId?: string | null;
   createdAt?: string;
 }
 

@@ -18,13 +18,17 @@ import {
   Check,
   AlertCircle,
   Loader2,
+  Camera,
 } from 'lucide-react';
+import UserAvatar from '@/components/ui/UserAvatar';
+import ProfilePhotoUploadModal from '@/components/ui/ProfilePhotoUploadModal';
 
 export default function AccountPage() {
   const router = useRouter();
   const { user, loading, logout, refreshUser } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [updating, setUpdating] = useState(false);
@@ -35,11 +39,13 @@ export default function AccountPage() {
     if (!loading && !user) {
       router.push('/login?redirect=/account');
     }
-    if (user) {
-      setName(user.name || '');
-      setPhone(user.phone || '');
-    }
   }, [user, loading, router]);
+
+  const startEditing = () => {
+    setName(user?.name || '');
+    setPhone(user?.phone || '');
+    setIsEditing(true);
+  };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,8 +57,10 @@ export default function AccountPage() {
       await refreshUser();
       setIsEditing(false);
       setSuccessMsg('Profile updated successfully!');
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to update profile');
+    } catch (err: unknown) {
+      setErrorMsg(
+        err instanceof Error ? err.message : 'Failed to update profile'
+      );
     } finally {
       setUpdating(false);
     }
@@ -82,9 +90,13 @@ export default function AccountPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-5">
-              <div className="w-20 h-20 rounded-full bg-red-50 border-2 border-[#E23744]/20 flex items-center justify-center text-2xl font-bold text-[#E23744]">
-                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-              </div>
+              <UserAvatar
+                src={user.avatarUrl}
+                name={user.name}
+                size="lg"
+                showEditBadge
+                onEditClick={() => setIsPhotoModalOpen(true)}
+              />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
                 <p className="text-gray-500 text-sm flex items-center gap-1.5 mt-1">
@@ -102,13 +114,22 @@ export default function AccountPage() {
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
               {!isEditing && (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  Edit Profile
-                </button>
+                <>
+                  <button
+                    onClick={() => setIsPhotoModalOpen(true)}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
+                  >
+                    <Camera className="w-4 h-4 text-red-600" />
+                    Change Photo
+                  </button>
+                  <button
+                    onClick={startEditing}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Edit Profile
+                  </button>
+                </>
               )}
               <button
                 onClick={handleLogout}
@@ -245,6 +266,18 @@ export default function AccountPage() {
           </div>
         </div>
       </div>
+
+      {/* Profile Photo Upload Modal */}
+      <ProfilePhotoUploadModal
+        isOpen={isPhotoModalOpen}
+        onClose={() => setIsPhotoModalOpen(false)}
+        currentAvatarUrl={user.avatarUrl}
+        userName={user.name}
+        onSuccess={async () => {
+          await refreshUser();
+          setSuccessMsg('Profile photo updated successfully!');
+        }}
+      />
     </div>
   );
 }

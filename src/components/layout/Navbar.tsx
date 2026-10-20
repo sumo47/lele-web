@@ -16,12 +16,12 @@ import {
   Package,
   Home,
   Compass,
-  Tag,
   ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function Navbar() {
   const router = useRouter();
@@ -158,11 +158,14 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 border border-gray-200 rounded-full hover:border-gray-300 transition"
+                  className="flex items-center gap-2 pl-1.5 pr-3 py-1 border border-gray-200 rounded-full hover:border-gray-300 transition"
+                  aria-label="User Account Menu"
                 >
-                  <div className="w-7 h-7 rounded-full bg-red-100 text-red-600 font-bold flex items-center justify-center text-xs">
-                    {user?.name?.charAt(0).toUpperCase() || 'U'}
-                  </div>
+                  <UserAvatar
+                    src={user?.avatarUrl}
+                    name={user?.name}
+                    size="sm"
+                  />
                   <span className="text-xs font-semibold text-gray-800 hidden sm:inline truncate max-w-[90px]">
                     {user?.name || 'Account'}
                   </span>
@@ -176,8 +179,17 @@ export default function Navbar() {
                     onMouseLeave={() => setUserDropdownOpen(false)}
                   >
                     <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-xs font-bold text-gray-900 truncate">{user?.name}</p>
-                      <p className="text-[11px] text-gray-500 truncate">{user?.email}</p>
+                      <div className="flex items-center gap-2.5 mb-1">
+                        <UserAvatar
+                          src={user?.avatarUrl}
+                          name={user?.name}
+                          size="sm"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-gray-900 truncate">{user?.name}</p>
+                          <p className="text-[11px] text-gray-500 truncate">{user?.email}</p>
+                        </div>
+                      </div>
                       {user?.walletBalance !== undefined && (
                         <div className="mt-1.5 flex items-center justify-between bg-emerald-50 text-emerald-700 px-2 py-1 rounded text-xs font-medium">
                           <span>Wallet Balance:</span>
@@ -370,7 +382,11 @@ export default function Navbar() {
           <span className="text-[10px] font-medium">Orders</span>
         </Link>
         <Link href={isAuthenticated ? "/account" : "/login"} className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-red-600">
-          <User className="w-5 h-5" />
+          {isAuthenticated ? (
+            <UserAvatar src={user?.avatarUrl} name={user?.name} size="xs" />
+          ) : (
+            <User className="w-5 h-5" />
+          )}
           <span className="text-[10px] font-medium">{isAuthenticated ? "Profile" : "Sign In"}</span>
         </Link>
       </div>

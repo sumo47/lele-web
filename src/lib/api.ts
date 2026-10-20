@@ -414,3 +414,17 @@ export async function apiCancelOrder(
     body: JSON.stringify({ reason: reason || 'Cancelled by customer' }),
   });
 }
+
+// ==========================================
+// 5. MEDIA & UPLOAD
+// ==========================================
+export { uploadImage, apiUploadProfilePhoto } from './uploadApi';
+export type { UploadImageOptions } from './uploadApi';
+export {
+  validateImageFile,
+  formatBytes,
+  MAX_IMAGE_SIZE_BYTES,
+  ALLOWED_IMAGE_MIME_TYPES,
+  ALLOWED_IMAGE_EXTENSIONS,
+} from './uploadValidation';
+
