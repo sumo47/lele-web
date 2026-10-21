@@ -202,9 +202,29 @@ export interface PublicStoreConfig {
   announcement: string;
   customerCancellationWindowSeconds: number;
   defaultDeliveryFee: number;
+  defaultRestaurantDeliveryFee?: number;
+  defaultShopDeliveryFee?: number;
   defaultConvenienceFee: number;
   minOrderValue: number;
+  restaurantMinOrderValue?: number;
+  shopMinOrderValue?: number;
   freeDeliveryMinOrderValue: number;
+  restaurantFreeDeliveryMinOrderValue?: number;
+  shopFreeDeliveryMinOrderValue?: number;
   isShopActive: boolean;
   isOnlinePaymentAvailable: boolean;
+  isConvenienceFeeEnabled?: boolean;
+  homeCarouselEnabled?: boolean;
+  version?: number;
 }
+
+export interface BusinessPricing {
+  businessId: string;
+  businessType: 'restaurant' | 'shop';
+  deliveryFee: number;
+  freeDeliveryMinOrderValue: number;
+  minOrderValue: number;
+  convenienceFee: number;
+  isConvenienceFeeEnabled: boolean;
+}
+

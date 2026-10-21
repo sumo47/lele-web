@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
-import type { CartItem, MenuItem, Coupon } from '@/lib/types';
+import type { CartItem, MenuItem, Coupon, BusinessPricing } from '@/lib/types';
 import { useAuth } from './AuthContext';
 import {
   apiGetCart,
@@ -10,6 +10,8 @@ import {
   apiRemoveCartItem,
   apiClearCart,
   validateCoupon,
+  getPublicConfig,
+  getBusinessPricing,
 } from '@/lib/api';
 
 interface CartContextType {
@@ -33,6 +35,11 @@ interface CartContextType {
   subtotal: number;
   deliveryFee: number;
   convenienceFee: number;
+  freeDeliveryThreshold: number;
+  minOrderValue?: number;
+  isConvenienceFeeEnabled: boolean;
+  businessPricing?: BusinessPricing | null;
+  refreshPricingConfig: () => Promise<void>;
   discount: number;
   total: number;
   totalItemsCount: number;
@@ -53,6 +60,60 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     discountAmount: number;
     discountType: string;
   } | null>(null);
+
+  // Dynamic operational pricing configuration loaded from backend
+  const [pricingConfig, setPricingConfig] = useState({
+    defaultDeliveryFee: 15,
+    defaultConvenienceFee: 3,
+    freeDeliveryMinOrderValue: 500,
+    isConvenienceFeeEnabled: true,
+  });
+
+  const [businessPricing, setBusinessPricing] = useState<BusinessPricing | null>(null);
+
+  // Synchronize per-business pricing whenever the active restaurantId changes
+  useEffect(() => {
+    let ignore = false;
+    if (!restaurantId) {
+      setBusinessPricing(null);
+      return;
+    }
+
+    getBusinessPricing(restaurantId)
+      .then(bp => {
+        if (!ignore && bp) {
+          setBusinessPricing(bp);
+        }
+      })
+      .catch(err => {
+        console.warn('Failed to load business pricing, using global defaults:', err);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [restaurantId]);
+
+  const refreshPricingConfig = useCallback(async () => {
+    try {
+      const cfg = await getPublicConfig();
+      if (cfg) {
+        setPricingConfig({
+          defaultDeliveryFee: typeof cfg.defaultDeliveryFee === 'number' ? cfg.defaultDeliveryFee : 15,
+          defaultConvenienceFee: typeof cfg.defaultConvenienceFee === 'number' ? cfg.defaultConvenienceFee : 3,
+          freeDeliveryMinOrderValue: typeof cfg.freeDeliveryMinOrderValue === 'number' ? cfg.freeDeliveryMinOrderValue : 500,
+          isConvenienceFeeEnabled: cfg.isConvenienceFeeEnabled !== false,
+        });
+      }
+    } catch (err) {
+      console.warn('Failed to load public config for cart pricing, using safe defaults:', err);
+    }
+  }, []);
+
+  // Fetch operational pricing config on mount
+  useEffect(() => {
+    refreshPricingConfig();
+  }, [refreshPricingConfig]);
 
   // Load from local storage initially
   useEffect(() => {
@@ -218,15 +279,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return items.reduce((sum, it) => sum + it.price * it.quantity, 0);
   }, [items]);
 
+  const effectiveFreeDeliveryThreshold = businessPricing?.freeDeliveryMinOrderValue ?? pricingConfig.freeDeliveryMinOrderValue;
+  const effectiveDeliveryFee = businessPricing?.deliveryFee ?? pricingConfig.defaultDeliveryFee;
+  const effectiveMinOrderValue = businessPricing?.minOrderValue ?? 99;
+  const isConvenienceFeeActive = businessPricing?.isConvenienceFeeEnabled ?? pricingConfig.isConvenienceFeeEnabled;
+  const effectiveConvenienceFee = businessPricing?.convenienceFee ?? pricingConfig.defaultConvenienceFee;
+
   const deliveryFee = useMemo(() => {
     if (subtotal === 0) return 0;
-    if (subtotal >= 500) return 0; // Free delivery above 500
-    return 30; // Standard 30 INR
-  }, [subtotal]);
+    if (subtotal >= effectiveFreeDeliveryThreshold) return 0;
+    return effectiveDeliveryFee;
+  }, [subtotal, effectiveFreeDeliveryThreshold, effectiveDeliveryFee]);
 
   const convenienceFee = useMemo(() => {
-    return subtotal > 0 ? 5 : 0;
-  }, [subtotal]);
+    if (subtotal === 0 || !isConvenienceFeeActive) return 0;
+    return effectiveConvenienceFee;
+  }, [subtotal, isConvenienceFeeActive, effectiveConvenienceFee]);
 
   const discount = useMemo(() => {
     if (!appliedCoupon || subtotal === 0) return 0;
@@ -294,6 +362,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         subtotal,
         deliveryFee,
         convenienceFee,
+        freeDeliveryThreshold: effectiveFreeDeliveryThreshold,
+        minOrderValue: effectiveMinOrderValue,
+        isConvenienceFeeEnabled: isConvenienceFeeActive,
+        businessPricing,
+        refreshPricingConfig,
         discount,
         total,
         totalItemsCount,

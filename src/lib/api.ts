@@ -9,6 +9,7 @@ import type {
   CustomerAddress,
   Order,
   PublicStoreConfig,
+  BusinessPricing,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -93,6 +94,11 @@ export async function fetchApi<T = any>(
 
 export async function getPublicConfig(): Promise<PublicStoreConfig> {
   return fetchApi<PublicStoreConfig>('/config/public');
+}
+
+export async function getBusinessPricing(businessId: string): Promise<BusinessPricing> {
+  const res = await fetchApi<any>(`/config/business/${encodeURIComponent(businessId)}`);
+  return res?.data || res;
 }
 
 export async function getHeroBanners(): Promise<HeroBanner[]> {
