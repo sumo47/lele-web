@@ -62,10 +62,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   } | null>(null);
 
   // Dynamic operational pricing configuration loaded from backend
-  const [pricingConfig, setPricingConfig] = useState({
+  const [pricingConfig, setPricingConfig] = useState<{
+    defaultDeliveryFee: number;
+    defaultConvenienceFee: number;
+    freeDeliveryMinOrderValue: number;
+    minOrderValue: number | null;
+    isConvenienceFeeEnabled: boolean;
+  }>({
     defaultDeliveryFee: 15,
     defaultConvenienceFee: 3,
     freeDeliveryMinOrderValue: 500,
+    minOrderValue: null,
     isConvenienceFeeEnabled: true,
   });
 
@@ -98,10 +105,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     try {
       const cfg = await getPublicConfig();
       if (cfg) {
+        const rawMinOrder = typeof cfg.restaurantMinOrderValue === 'number'
+          ? cfg.restaurantMinOrderValue
+          : (typeof cfg.minOrderValue === 'number' ? cfg.minOrderValue : undefined);
+
         setPricingConfig({
           defaultDeliveryFee: typeof cfg.defaultDeliveryFee === 'number' ? cfg.defaultDeliveryFee : 15,
           defaultConvenienceFee: typeof cfg.defaultConvenienceFee === 'number' ? cfg.defaultConvenienceFee : 3,
           freeDeliveryMinOrderValue: typeof cfg.freeDeliveryMinOrderValue === 'number' ? cfg.freeDeliveryMinOrderValue : 500,
+          minOrderValue: typeof rawMinOrder === 'number' ? rawMinOrder : 99,
           isConvenienceFeeEnabled: cfg.isConvenienceFeeEnabled !== false,
         });
       }
@@ -279,11 +291,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return items.reduce((sum, it) => sum + it.price * it.quantity, 0);
   }, [items]);
 
-  const effectiveFreeDeliveryThreshold = businessPricing?.freeDeliveryMinOrderValue ?? pricingConfig.freeDeliveryMinOrderValue;
-  const effectiveDeliveryFee = businessPricing?.deliveryFee ?? pricingConfig.defaultDeliveryFee;
-  const effectiveMinOrderValue = businessPricing?.minOrderValue ?? 99;
-  const isConvenienceFeeActive = businessPricing?.isConvenienceFeeEnabled ?? pricingConfig.isConvenienceFeeEnabled;
-  const effectiveConvenienceFee = businessPricing?.convenienceFee ?? pricingConfig.defaultConvenienceFee;
+  const effectiveFreeDeliveryThreshold = (businessPricing?.freeDeliveryMinOrderValue !== null && businessPricing?.freeDeliveryMinOrderValue !== undefined)
+    ? businessPricing.freeDeliveryMinOrderValue
+    : pricingConfig.freeDeliveryMinOrderValue;
+  const effectiveDeliveryFee = (businessPricing?.deliveryFee !== null && businessPricing?.deliveryFee !== undefined)
+    ? businessPricing.deliveryFee
+    : pricingConfig.defaultDeliveryFee;
+  const effectiveMinOrderValue = (businessPricing?.minOrderValue !== null && businessPricing?.minOrderValue !== undefined)
+    ? businessPricing.minOrderValue
+    : (pricingConfig.minOrderValue !== null ? pricingConfig.minOrderValue : undefined);
+  const isConvenienceFeeActive = (businessPricing?.isConvenienceFeeEnabled !== null && businessPricing?.isConvenienceFeeEnabled !== undefined)
+    ? businessPricing.isConvenienceFeeEnabled
+    : pricingConfig.isConvenienceFeeEnabled;
+  const effectiveConvenienceFee = (businessPricing?.convenienceFee !== null && businessPricing?.convenienceFee !== undefined)
+    ? businessPricing.convenienceFee
+    : pricingConfig.defaultConvenienceFee;
 
   const deliveryFee = useMemo(() => {
     if (subtotal === 0) return 0;
