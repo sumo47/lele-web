@@ -34,17 +34,25 @@ export default function HomePage() {
   useEffect(() => {
     async function loadHomeData() {
       try {
-        const [bannersData, categoriesData, restaurantsData, catalogData] = await Promise.all([
+        const [bannersResult, categoriesResult, restaurantsResult, catalogResult] = await Promise.allSettled([
           getHeroBanners(),
           getCategories(),
           getRestaurants({ limit: 6 }),
           searchCatalog({ q: '', type: 'dish' }),
         ]);
 
-        setBanners(bannersData);
-        setCategories(categoriesData);
-        setRestaurants(restaurantsData);
-        setTrendingDishes(catalogData.dishes?.slice(0, 8) || []);
+        if (bannersResult.status === 'fulfilled') {
+          setBanners(Array.isArray(bannersResult.value) ? bannersResult.value : []);
+        }
+        if (categoriesResult.status === 'fulfilled') {
+          setCategories(Array.isArray(categoriesResult.value) ? categoriesResult.value : []);
+        }
+        if (restaurantsResult.status === 'fulfilled') {
+          setRestaurants(Array.isArray(restaurantsResult.value) ? restaurantsResult.value : []);
+        }
+        if (catalogResult.status === 'fulfilled') {
+          setTrendingDishes(catalogResult.value?.dishes?.slice(0, 8) || []);
+        }
       } catch (err) {
         console.error('Failed to load homepage data:', err);
       } finally {
@@ -132,26 +140,34 @@ export default function HomePage() {
           {/* Banner Promo Grid */}
           {banners.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-              {banners.map((b) => (
-                <Link
-                  key={b.id}
-                  href={b.link || '/catalog'}
-                  className="group relative rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition aspect-16/7 sm:aspect-16/8 bg-gray-900 flex items-end p-4 text-white"
-                >
-                  <Image
-                    src={b.image_url || b.imageUrl || ''}
-                    alt={b.title || 'Promo Banner'}
-                    fill
-                    className="object-cover group-hover:scale-105 transition duration-300 opacity-60"
-                  />
-                  <div className="relative z-10">
-                    <h3 className="font-bold text-sm sm:text-base leading-snug drop-shadow-sm">{b.title}</h3>
-                    {b.subtitle && (
-                      <p className="text-xs text-gray-200 line-clamp-1 drop-shadow-sm">{b.subtitle}</p>
+              {banners.map((b) => {
+                const imgSrc = b.image_url || b.imageUrl;
+                return (
+                  <Link
+                    key={b.id}
+                    href={b.link && b.link !== '/restaurant' && b.link !== '/restaurant/' ? b.link : '/catalog'}
+                    className="group relative rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition aspect-16/7 sm:aspect-16/8 bg-gray-900 flex items-end p-4 text-white"
+                  >
+                    {imgSrc ? (
+                      <Image
+                        src={imgSrc}
+                        alt={b.title || 'Promo Banner'}
+                        fill
+                        className="object-cover group-hover:scale-105 transition duration-300 opacity-60"
+                        unoptimized={imgSrc.includes('cloudinary.com') || imgSrc.includes('unsplash.com')}
+                      />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-tr from-gray-900 to-gray-800 opacity-80" />
                     )}
-                  </div>
-                </Link>
-              ))}
+                    <div className="relative z-10">
+                      <h3 className="font-bold text-sm sm:text-base leading-snug drop-shadow-sm">{b.title}</h3>
+                      {b.subtitle && (
+                        <p className="text-xs text-gray-200 line-clamp-1 drop-shadow-sm">{b.subtitle}</p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
 
