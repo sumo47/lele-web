@@ -391,6 +391,7 @@ export async function apiClearCart(): Promise<CartData> {
 
 export async function apiCreateOrder(input: {
   deliveryAddress: string;
+  customerCoordinates?: string;
   customerPhone?: string;
   customerName?: string;
   cookingInstructions?: string;

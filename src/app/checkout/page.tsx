@@ -159,8 +159,14 @@ export default function CheckoutPage() {
         }
       }
 
+      let customerCoordinates = '26.310405, 86.569405';
+      if (selected && selected.latitude && selected.longitude) {
+        customerCoordinates = `${selected.latitude}, ${selected.longitude}`;
+      }
+
       const order = await apiCreateOrder({
         deliveryAddress: finalAddress,
+        customerCoordinates,
         customerName: customerName || user?.name || 'Customer',
         customerPhone: customerPhone || '+918757962224',
         cookingInstructions: cookingInstructions.trim(),
