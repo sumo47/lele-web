@@ -201,6 +201,12 @@ export interface PublicStoreConfig {
   maintenanceMessage: string;
   announcement: string;
   customerCancellationWindowSeconds: number;
+  zoneModeEnabled?: boolean;
+  foodDeliveryFeeEnabled?: boolean;
+  foodDeliveryFee?: number;
+  foodFreeDeliveryThreshold?: number;
+  foodConvenienceFeeEnabled?: boolean;
+  foodConvenienceFee?: number;
   defaultDeliveryFee: number;
   defaultRestaurantDeliveryFee?: number;
   defaultShopDeliveryFee?: number;
@@ -211,6 +217,11 @@ export interface PublicStoreConfig {
   freeDeliveryMinOrderValue: number;
   restaurantFreeDeliveryMinOrderValue?: number;
   shopFreeDeliveryMinOrderValue?: number;
+  shopDeliveryFeeEnabled?: boolean;
+  shopDeliveryFee?: number;
+  shopFreeDeliveryThreshold?: number;
+  shopConvenienceFeeEnabled?: boolean;
+  shopConvenienceFee?: number;
   isShopActive: boolean;
   isOnlinePaymentAvailable: boolean;
   isConvenienceFeeEnabled?: boolean;

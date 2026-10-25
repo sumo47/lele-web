@@ -63,15 +63,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Dynamic operational pricing configuration loaded from backend
   const [pricingConfig, setPricingConfig] = useState<{
+    deliveryFeeEnabled: boolean;
     defaultDeliveryFee: number;
     defaultConvenienceFee: number;
     freeDeliveryMinOrderValue: number;
     minOrderValue: number | null;
     isConvenienceFeeEnabled: boolean;
   }>({
+    deliveryFeeEnabled: true,
     defaultDeliveryFee: 15,
     defaultConvenienceFee: 3,
-    freeDeliveryMinOrderValue: 500,
+    freeDeliveryMinOrderValue: 149,
     minOrderValue: null,
     isConvenienceFeeEnabled: true,
   });
@@ -109,12 +111,37 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           ? cfg.restaurantMinOrderValue
           : (typeof cfg.minOrderValue === 'number' ? cfg.minOrderValue : undefined);
 
+        const feeEnabled = cfg.foodDeliveryFeeEnabled !== undefined
+          ? cfg.foodDeliveryFeeEnabled
+          : true;
+
+        const feeAmount = typeof cfg.foodDeliveryFee === 'number'
+          ? cfg.foodDeliveryFee
+          : (typeof cfg.defaultRestaurantDeliveryFee === 'number'
+              ? cfg.defaultRestaurantDeliveryFee
+              : (typeof cfg.defaultDeliveryFee === 'number' ? cfg.defaultDeliveryFee : 15));
+
+        const freeThreshold = typeof cfg.foodFreeDeliveryThreshold === 'number'
+          ? cfg.foodFreeDeliveryThreshold
+          : (typeof cfg.restaurantFreeDeliveryMinOrderValue === 'number'
+              ? cfg.restaurantFreeDeliveryMinOrderValue
+              : (typeof cfg.freeDeliveryMinOrderValue === 'number' ? cfg.freeDeliveryMinOrderValue : 149));
+
+        const convEnabled = cfg.foodConvenienceFeeEnabled !== undefined
+          ? cfg.foodConvenienceFeeEnabled
+          : (cfg.isConvenienceFeeEnabled !== false);
+
+        const convAmount = typeof cfg.foodConvenienceFee === 'number'
+          ? cfg.foodConvenienceFee
+          : (typeof cfg.defaultConvenienceFee === 'number' ? cfg.defaultConvenienceFee : 3);
+
         setPricingConfig({
-          defaultDeliveryFee: typeof cfg.defaultDeliveryFee === 'number' ? cfg.defaultDeliveryFee : 15,
-          defaultConvenienceFee: typeof cfg.defaultConvenienceFee === 'number' ? cfg.defaultConvenienceFee : 3,
-          freeDeliveryMinOrderValue: typeof cfg.freeDeliveryMinOrderValue === 'number' ? cfg.freeDeliveryMinOrderValue : 500,
+          deliveryFeeEnabled: feeEnabled,
+          defaultDeliveryFee: feeAmount,
+          defaultConvenienceFee: convAmount,
+          freeDeliveryMinOrderValue: freeThreshold,
           minOrderValue: typeof rawMinOrder === 'number' ? rawMinOrder : 99,
-          isConvenienceFeeEnabled: cfg.isConvenienceFeeEnabled !== false,
+          isConvenienceFeeEnabled: convEnabled,
         });
       }
     } catch (err) {
@@ -308,10 +335,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     : pricingConfig.defaultConvenienceFee;
 
   const deliveryFee = useMemo(() => {
-    if (subtotal === 0) return 0;
+    if (subtotal === 0 || !pricingConfig.deliveryFeeEnabled) return 0;
     if (subtotal >= effectiveFreeDeliveryThreshold) return 0;
     return effectiveDeliveryFee;
-  }, [subtotal, effectiveFreeDeliveryThreshold, effectiveDeliveryFee]);
+  }, [subtotal, pricingConfig.deliveryFeeEnabled, effectiveFreeDeliveryThreshold, effectiveDeliveryFee]);
 
   const convenienceFee = useMemo(() => {
     if (subtotal === 0 || !isConvenienceFeeActive) return 0;
