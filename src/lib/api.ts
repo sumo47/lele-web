@@ -435,3 +435,22 @@ export {
   ALLOWED_IMAGE_EXTENSIONS,
 } from './uploadValidation';
 
+// ==========================================
+// 6. PARTNER ONBOARDING APIS
+// ==========================================
+export async function applyRiderPartner(data: Record<string, any>): Promise<any> {
+  return fetchApi('/riders/apply', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function applyRestaurantPartner(data: Record<string, any>): Promise<any> {
+  return fetchApi('/restaurants/apply', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+
+

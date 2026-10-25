@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -21,6 +21,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
+import { getPublicConfig } from '@/lib/api';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function Navbar() {
@@ -32,6 +33,17 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [onboardingEnabled, setOnboardingEnabled] = useState(true);
+
+  useEffect(() => {
+    getPublicConfig()
+      .then((cfg) => {
+        if (cfg && cfg.partnerOnboardingEnabled === false) {
+          setOnboardingEnabled(false);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,6 +65,18 @@ export default function Navbar() {
             <span>⚡ Piping hot food delivered in 25-35 mins across Nirmali, Bihar</span>
           </div>
           <div className="hidden md:flex items-center gap-4 text-red-100">
+            {onboardingEnabled && (
+              <>
+                <Link href="/partner/rider" className="hover:text-white transition font-semibold text-yellow-300">
+                  🛵 Become a Rider
+                </Link>
+                <span className="opacity-40">|</span>
+                <Link href="/partner/restaurant" className="hover:text-white transition font-semibold text-yellow-300">
+                  🏬 Become a Shop
+                </Link>
+                <span className="opacity-40">|</span>
+              </>
+            )}
             <span>Call: +91 8757962224</span>
             <span className="opacity-40">|</span>
             <Link href="/about" className="hover:text-white transition">About LELE</Link>
@@ -215,6 +239,28 @@ export default function Navbar() {
                       <MapPin className="w-4 h-4 text-gray-400" />
                       Saved Addresses
                     </Link>
+                    {onboardingEnabled && (
+                      <>
+                        <div className="border-t border-gray-100 my-1"></div>
+                        <div className="px-4 py-1 text-[10px] uppercase font-bold tracking-wider text-gray-400">
+                          Partner with LELE
+                        </div>
+                        <Link
+                          href="/partner/rider"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 transition"
+                        >
+                          🛵 Become a Rider
+                        </Link>
+                        <Link
+                          href="/partner/restaurant"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-50 transition"
+                        >
+                          🏬 Become a Shop
+                        </Link>
+                      </>
+                    )}
                     <div className="border-t border-gray-100 my-1"></div>
                     <button
                       onClick={() => {
@@ -311,6 +357,25 @@ export default function Navbar() {
                 <User className="w-5 h-5 text-red-600" />
                 Account Profile
               </Link>
+              {onboardingEnabled && (
+                <div className="pt-2 border-t border-gray-100 flex flex-col gap-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 px-2">Partner with LELE</span>
+                  <Link
+                    href="/partner/rider"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-2"
+                  >
+                    🛵 Become a Delivery Rider
+                  </Link>
+                  <Link
+                    href="/partner/restaurant"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded-lg flex items-center gap-2"
+                  >
+                    🏬 Become a Shop / Restaurant
+                  </Link>
+                </div>
+              )}
             </nav>
             <div className="pt-2 border-t border-gray-100 flex gap-2">
               {!isAuthenticated ? (

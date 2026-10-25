@@ -215,6 +215,7 @@ export interface PublicStoreConfig {
   isOnlinePaymentAvailable: boolean;
   isConvenienceFeeEnabled?: boolean;
   homeCarouselEnabled?: boolean;
+  partnerOnboardingEnabled?: boolean;
   version?: number;
 }
 

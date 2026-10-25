@@ -1,9 +1,23 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { MapPin, Phone, Mail, Clock, ShieldCheck, Heart } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, ShieldCheck, Heart, Bike, Store } from 'lucide-react';
+import { getPublicConfig } from '@/lib/api';
 
 export default function Footer() {
+  const [onboardingEnabled, setOnboardingEnabled] = useState(true);
+
+  useEffect(() => {
+    getPublicConfig()
+      .then((cfg) => {
+        if (cfg && cfg.partnerOnboardingEnabled === false) {
+          setOnboardingEnabled(false);
+        }
+      })
+      .catch(() => {});
+  }, []);
   return (
     <footer className="bg-gray-900 text-gray-300 pt-16 pb-24 md:pb-12 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,6 +83,20 @@ export default function Footer() {
               <li>
                 <Link href="/account" className="hover:text-red-400 transition">Customer Profile</Link>
               </li>
+              {onboardingEnabled && (
+                <>
+                  <li className="pt-2 border-t border-gray-800">
+                    <Link href="/partner/rider" className="text-blue-400 hover:text-blue-300 font-medium transition flex items-center gap-1.5">
+                      <Bike className="w-3.5 h-3.5" /> Become a Rider
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/partner/restaurant" className="text-orange-400 hover:text-orange-300 font-medium transition flex items-center gap-1.5">
+                      <Store className="w-3.5 h-3.5" /> Become a Shop Owner
+                    </Link>
+                  </li>
+                </>
+              )}
             </ul>
           </div>
 
