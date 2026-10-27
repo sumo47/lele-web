@@ -7,7 +7,10 @@ import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 import CartDrawer from '@/components/layout/CartDrawer';
 
+const canonicalUrl = process.env.NEXT_PUBLIC_WEB_BASE_URL || 'https://www.leleindia.store';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(canonicalUrl),
   title: 'LELE Store — Authentic Food & Local Kitchen Delivery in Nirmali',
   description:
     'Order fresh, delicious Hyderabadi biryani, North Indian curries, pizzas, sweets and snacks delivered fast to your doorstep in Nirmali, Bihar.',
@@ -27,7 +30,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'LELE Store — Food & Grocery Delivery in Nirmali',
     description: 'Hot, fresh food from top certified kitchens in Nirmali, Bihar delivered in 25-35 mins.',
-    url: 'https://leleindia.store',
+    url: canonicalUrl,
     siteName: 'LELE Store',
     locale: 'en_IN',
     type: 'website',
