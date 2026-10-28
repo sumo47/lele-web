@@ -10,6 +10,13 @@ import type {
   Order,
   PublicStoreConfig,
   BusinessPricing,
+  VendorOrder,
+  VendorOutlet,
+  VendorCatalogItem,
+  VendorCategory,
+  RiderOrder,
+  RiderProfile,
+  RiderDutyStatus,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -450,6 +457,245 @@ export async function applyRestaurantPartner(data: Record<string, any>): Promise
     method: 'POST',
     body: JSON.stringify(data),
   });
+}
+
+// ==========================================
+// 7. RESTAURANT / VENDOR DASHBOARD APIS
+// ==========================================
+
+export async function apiGetVendorOrders(params?: {
+  status?: string;
+  page?: number;
+  limit?: number;
+  restaurantId?: string;
+}): Promise<{ data: VendorOrder[]; pagination?: any }> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set('status', params.status);
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+  if (params?.restaurantId) query.set('restaurantId', params.restaurantId);
+
+  const res = await fetchApi<any>(`/vendor/orders?${query.toString()}`);
+  if (Array.isArray(res)) {
+    return { data: res, pagination: { page: 1, limit: res.length, total: res.length, totalPages: 1 } };
+  }
+  return {
+    data: res?.data || [],
+    pagination: res?.pagination || { page: 1, limit: 20, total: 0, totalPages: 1 },
+  };
+}
+
+export async function apiGetVendorOrderById(orderId: string): Promise<VendorOrder> {
+  return fetchApi<VendorOrder>(`/vendor/orders/${encodeURIComponent(orderId)}`);
+}
+
+export async function apiAcceptVendorOrder(
+  orderId: string,
+  prepTimeMinutes = 20
+): Promise<VendorOrder> {
+  return fetchApi<VendorOrder>(`/vendor/orders/${encodeURIComponent(orderId)}/accept`, {
+    method: 'POST',
+    body: JSON.stringify({ prepTimeMinutes }),
+  });
+}
+
+export async function apiUpdateVendorOrderStatus(
+  orderId: string,
+  status: 'preparing' | 'ready' | 'cancelled',
+  options?: { prepTimeMinutes?: number; reason?: string }
+): Promise<VendorOrder> {
+  return fetchApi<VendorOrder>(`/vendor/orders/${encodeURIComponent(orderId)}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status,
+      prepTimeMinutes: options?.prepTimeMinutes ?? 20,
+      reason: options?.reason ?? 'Item Out of Stock',
+    }),
+  });
+}
+
+export async function apiRejectVendorOrder(
+  orderId: string,
+  reason: string
+): Promise<{ success: boolean; orderId: string }> {
+  return fetchApi<any>(`/vendor/orders/${encodeURIComponent(orderId)}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function apiGetVendorOutlet(restaurantId?: string): Promise<VendorOutlet> {
+  const query = new URLSearchParams();
+  if (restaurantId) query.set('restaurantId', restaurantId);
+  const qStr = query.toString();
+  return fetchApi<VendorOutlet>(`/vendor/outlet${qStr ? `?${qStr}` : ''}`);
+}
+
+export async function apiUpdateVendorOutletStatus(
+  isOnline: boolean,
+  restaurantId: string
+): Promise<{ restaurantId: string; isOnline: boolean; isOpen: boolean }> {
+  return fetchApi<any>('/vendor/outlet/status', {
+    method: 'PATCH',
+    body: JSON.stringify({ isOnline, restaurantId }),
+  });
+}
+
+export async function apiGetVendorCatalogItems(params?: {
+  categoryId?: string;
+  search?: string;
+  restaurantId?: string;
+}): Promise<VendorCatalogItem[]> {
+  const query = new URLSearchParams();
+  if (params?.categoryId) query.set('categoryId', params.categoryId);
+  if (params?.search) query.set('search', params.search);
+  if (params?.restaurantId) query.set('restaurantId', params.restaurantId);
+
+  const res = await fetchApi<any>(`/vendor/catalog/items?${query.toString()}`);
+  return Array.isArray(res) ? res : res?.data || [];
+}
+
+export async function apiGetVendorCategories(restaurantId?: string): Promise<VendorCategory[]> {
+  const query = new URLSearchParams();
+  if (restaurantId) query.set('restaurantId', restaurantId);
+  const res = await fetchApi<any>(`/vendor/catalog/categories?${query.toString()}`);
+  return Array.isArray(res) ? res : res?.data || [];
+}
+
+export async function apiCreateVendorCatalogItem(
+  item: Partial<VendorCatalogItem>
+): Promise<VendorCatalogItem> {
+  return fetchApi<VendorCatalogItem>('/vendor/catalog/items', {
+    method: 'POST',
+    body: JSON.stringify(item),
+  });
+}
+
+export async function apiUpdateVendorCatalogItem(
+  itemId: string,
+  item: Partial<VendorCatalogItem>
+): Promise<VendorCatalogItem> {
+  return fetchApi<VendorCatalogItem>(`/vendor/catalog/items/${encodeURIComponent(itemId)}`, {
+    method: 'PUT',
+    body: JSON.stringify(item),
+  });
+}
+
+export async function apiToggleVendorItemAvailability(
+  itemId: string,
+  inStock: boolean
+): Promise<VendorCatalogItem> {
+  return fetchApi<VendorCatalogItem>(
+    `/vendor/catalog/items/${encodeURIComponent(itemId)}/availability`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ inStock }),
+    }
+  );
+}
+
+export async function apiDeleteVendorCatalogItem(
+  itemId: string
+): Promise<{ success: boolean }> {
+  return fetchApi<{ success: boolean }>(
+    `/vendor/catalog/items/${encodeURIComponent(itemId)}`,
+    {
+      method: 'DELETE',
+    }
+  );
+}
+
+// ==========================================
+// 8. RIDER / DELIVERY DASHBOARD APIS
+// ==========================================
+
+export async function apiGetRiderOrders(params?: {
+  status?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ data: RiderOrder[]; pagination?: any }> {
+  const query = new URLSearchParams();
+  if (params?.status) query.set('status', params.status);
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+
+  const res = await fetchApi<any>(`/rider/orders?${query.toString()}`);
+  if (Array.isArray(res)) {
+    return { data: res, pagination: { page: 1, limit: res.length, total: res.length, totalPages: 1 } };
+  }
+  return {
+    data: res?.data || [],
+    pagination: res?.pagination || { page: 1, limit: 20, total: 0, totalPages: 1 },
+  };
+}
+
+export async function apiGetAvailableRiderOrders(params?: {
+  page?: number;
+  limit?: number;
+}): Promise<{ data: RiderOrder[]; pagination?: any }> {
+  const query = new URLSearchParams();
+  if (params?.page) query.set('page', String(params.page));
+  if (params?.limit) query.set('limit', String(params.limit));
+
+  const res = await fetchApi<any>(`/rider/orders/available?${query.toString()}`);
+  if (Array.isArray(res)) {
+    return { data: res, pagination: { page: 1, limit: res.length, total: res.length, totalPages: 1 } };
+  }
+  return {
+    data: res?.data || [],
+    pagination: res?.pagination || { page: 1, limit: 20, total: 0, totalPages: 1 },
+  };
+}
+
+export async function apiGetRiderOrderById(orderId: string): Promise<RiderOrder> {
+  return fetchApi<RiderOrder>(`/rider/orders/${encodeURIComponent(orderId)}`);
+}
+
+export async function apiAcceptRiderOrder(orderId: string): Promise<RiderOrder> {
+  return fetchApi<RiderOrder>(`/rider/orders/${encodeURIComponent(orderId)}/accept`, {
+    method: 'POST',
+  });
+}
+
+export async function apiRejectRiderOrder(
+  orderId: string,
+  reason = 'Declined by delivery partner'
+): Promise<{ success: boolean }> {
+  return fetchApi<any>(`/rider/orders/${encodeURIComponent(orderId)}/reject`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function apiVerifyRiderPickup(
+  orderId: string,
+  pickupPin: string
+): Promise<RiderOrder> {
+  return fetchApi<RiderOrder>(`/rider/orders/${encodeURIComponent(orderId)}/pickup`, {
+    method: 'POST',
+    body: JSON.stringify({ pickupPin }),
+  });
+}
+
+export async function apiCompleteRiderDelivery(
+  orderId: string,
+  deliveryPin: string
+): Promise<{ success: boolean; orderId: string; payout: number }> {
+  return fetchApi<any>(`/rider/orders/${encodeURIComponent(orderId)}/deliver`, {
+    method: 'POST',
+    body: JSON.stringify({ deliveryPin }),
+  });
+}
+
+export async function apiUpdateRiderStatus(isOnline: boolean): Promise<RiderDutyStatus> {
+  return fetchApi<RiderDutyStatus>('/rider/status', {
+    method: 'PATCH',
+    body: JSON.stringify({ isOnline }),
+  });
+}
+
+export async function apiGetRiderProfile(): Promise<RiderProfile> {
+  return fetchApi<RiderProfile>('/rider/profile');
 }
 
 

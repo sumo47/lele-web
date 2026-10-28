@@ -3,10 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { MapPin, Phone, Mail, Clock, ShieldCheck, Heart, Bike, Store } from 'lucide-react';
 import { getPublicConfig } from '@/lib/api';
 
 export default function Footer() {
+  const pathname = usePathname();
   const [onboardingEnabled, setOnboardingEnabled] = useState(true);
 
   useEffect(() => {
@@ -18,6 +20,14 @@ export default function Footer() {
       })
       .catch(() => {});
   }, []);
+
+  const isPartnerDashboard =
+    pathname?.startsWith('/partner/restaurant') || pathname?.startsWith('/partner/rider');
+
+  if (isPartnerDashboard) {
+    return null;
+  }
+
   return (
     <footer className="bg-gray-900 text-gray-300 pt-16 pb-24 md:pb-12 border-t border-gray-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -86,17 +96,22 @@ export default function Footer() {
               {onboardingEnabled && (
                 <>
                   <li className="pt-2 border-t border-gray-800">
-                    <Link href="/partner/rider" className="text-blue-400 hover:text-blue-300 font-medium transition flex items-center gap-1.5">
+                    <Link href="/partner/rider/apply" className="text-blue-400 hover:text-blue-300 font-medium transition flex items-center gap-1.5">
                       <Bike className="w-3.5 h-3.5" /> Become a Rider
                     </Link>
                   </li>
                   <li>
-                    <Link href="/partner/restaurant" className="text-orange-400 hover:text-orange-300 font-medium transition flex items-center gap-1.5">
-                      <Store className="w-3.5 h-3.5" /> Become a Shop Owner
+                    <Link href="/partner/restaurant/apply" className="text-orange-400 hover:text-orange-300 font-medium transition flex items-center gap-1.5">
+                      <Store className="w-3.5 h-3.5" /> Become a Restaurant Partner
                     </Link>
                   </li>
                 </>
               )}
+              <li>
+                <Link href="/partner" className="text-gray-400 hover:text-gray-200 transition">
+                  Partner Portal & Hub
+                </Link>
+              </li>
             </ul>
           </div>
 

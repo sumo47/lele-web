@@ -16,6 +16,13 @@ interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
   isAuthenticated: boolean;
+  isVendorApproved: boolean;
+  isRiderApproved: boolean;
+  isVendorPending: boolean;
+  isRiderPending: boolean;
+  isVendorRejected: boolean;
+  isRiderRejected: boolean;
+  hasPartnerRole: boolean;
   login: (credentials: { email: string; password: string }) => Promise<void>;
   loginWithGoogle: (idToken: string) => Promise<void>;
   signup: (data: {
@@ -105,12 +112,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const roles = Array.isArray(user?.roles) ? user!.roles! : user?.role ? [user.role] : [];
+  const isAdmin = roles.includes('admin') || roles.includes('superadmin');
+
+  // Vendor status resolution
+  const isVendorApproved =
+    isAdmin ||
+    ((roles.includes('vendor') || user?.role === 'vendor') &&
+      user?.vendorApprovalStatus === 'approved') ||
+    Boolean(user?.restaurantId && user?.vendorApprovalStatus === 'approved');
+
+  const isVendorPending = user?.vendorApprovalStatus === 'pending';
+  const isVendorRejected = user?.vendorApprovalStatus === 'rejected';
+
+  // Rider status resolution
+  const isRiderApproved =
+    isAdmin ||
+    ((roles.includes('rider') || user?.role === 'rider') &&
+      user?.riderApprovalStatus === 'approved');
+
+  const isRiderPending = user?.riderApprovalStatus === 'pending';
+  const isRiderRejected = user?.riderApprovalStatus === 'rejected';
+
+  const hasPartnerRole = isVendorApproved || isRiderApproved;
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
         isAuthenticated: Boolean(user),
+        isVendorApproved,
+        isRiderApproved,
+        isVendorPending,
+        isRiderPending,
+        isVendorRejected,
+        isRiderRejected,
+        hasPartnerRole,
         login,
         loginWithGoogle,
         signup,

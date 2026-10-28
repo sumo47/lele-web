@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   Search,
   ShoppingCart,
@@ -26,7 +26,8 @@ import UserAvatar from '@/components/ui/UserAvatar';
 
 export default function Navbar() {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuth();
+  const pathname = usePathname();
+  const { user, isAuthenticated, logout, isVendorApproved, isRiderApproved } = useAuth();
   const { totalItemsCount, openCart } = useCart();
   const { favorites } = useWishlist();
 
@@ -52,6 +53,13 @@ export default function Navbar() {
       setMobileMenuOpen(false);
     }
   };
+
+  const isPartnerDashboard =
+    pathname?.startsWith('/partner/restaurant') || pathname?.startsWith('/partner/rider');
+
+  if (isPartnerDashboard) {
+    return null;
+  }
 
   return (
     <>
@@ -239,28 +247,58 @@ export default function Navbar() {
                       <MapPin className="w-4 h-4 text-gray-400" />
                       Saved Addresses
                     </Link>
-                    {onboardingEnabled && (
+                    {/* Partner Links */}
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <div className="px-4 py-1 text-[10px] uppercase font-bold tracking-wider text-gray-400">
+                      Partner Portal
+                    </div>
+
+                    {isVendorApproved && (
+                      <Link
+                        href="/partner/restaurant"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-amber-700 bg-amber-50/60 hover:bg-amber-100 transition"
+                      >
+                        🏬 Restaurant Dashboard
+                      </Link>
+                    )}
+
+                    {isRiderApproved && (
+                      <Link
+                        href="/partner/rider"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100 transition"
+                      >
+                        🛵 Rider Dashboard
+                      </Link>
+                    )}
+
+                    {!isVendorApproved && !isRiderApproved && onboardingEnabled && (
                       <>
-                        <div className="border-t border-gray-100 my-1"></div>
-                        <div className="px-4 py-1 text-[10px] uppercase font-bold tracking-wider text-gray-400">
-                          Partner with LELE
-                        </div>
                         <Link
-                          href="/partner/rider"
+                          href="/partner/rider/apply"
                           onClick={() => setUserDropdownOpen(false)}
                           className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-50 transition"
                         >
                           🛵 Become a Rider
                         </Link>
                         <Link
-                          href="/partner/restaurant"
+                          href="/partner/restaurant/apply"
                           onClick={() => setUserDropdownOpen(false)}
                           className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-50 transition"
                         >
-                          🏬 Become a Shop
+                          🏬 Become a Restaurant Partner
                         </Link>
                       </>
                     )}
+
+                    <Link
+                      href="/partner"
+                      onClick={() => setUserDropdownOpen(false)}
+                      className="flex items-center gap-2 px-4 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition"
+                    >
+                      🤝 Partner Hub
+                    </Link>
                     <div className="border-t border-gray-100 my-1"></div>
                     <button
                       onClick={() => {

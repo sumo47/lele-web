@@ -19,13 +19,16 @@ import {
   AlertCircle,
   Loader2,
   Camera,
+  Store,
+  Bike,
+  ArrowRight,
 } from 'lucide-react';
 import UserAvatar from '@/components/ui/UserAvatar';
 import ProfilePhotoUploadModal from '@/components/ui/ProfilePhotoUploadModal';
 
 export default function AccountPage() {
   const router = useRouter();
-  const { user, loading, logout, refreshUser } = useAuth();
+  const { user, loading, logout, refreshUser, isVendorApproved, isRiderApproved } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -206,6 +209,58 @@ export default function AccountPage() {
             </form>
           )}
         </div>
+
+        {/* Partner Mode Switcher Banner / Cards */}
+        {(isVendorApproved || isRiderApproved) && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">
+              Partner Consoles
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {isVendorApproved && (
+                <Link
+                  href="/partner/restaurant"
+                  className="bg-gradient-to-r from-amber-500 to-orange-600 rounded-2xl p-5 text-white shadow-md hover:shadow-lg transition flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                      <Store className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-100 block">
+                        Verified Shop / Kitchen
+                      </span>
+                      <h3 className="font-extrabold text-lg">Restaurant Dashboard</h3>
+                      <p className="text-xs text-amber-100">Manage orders, menu & kitchen queue</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
+
+              {isRiderApproved && (
+                <Link
+                  href="/partner/rider"
+                  className="bg-gradient-to-r from-emerald-600 to-teal-700 rounded-2xl p-5 text-white shadow-md hover:shadow-lg transition flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
+                      <Bike className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-100 block">
+                        Verified Delivery Partner
+                      </span>
+                      <h3 className="font-extrabold text-lg">Rider Dashboard</h3>
+                      <p className="text-xs text-emerald-100">Live deliveries, broadcast pool & wallet</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Quick Navigation Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">

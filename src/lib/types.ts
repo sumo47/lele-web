@@ -106,6 +106,13 @@ export interface UserProfile {
   walletBalance?: number;
   isEmailVerified?: boolean;
   emailVerified?: boolean;
+  restaurantId?: string | null;
+  restaurantName?: string | null;
+  vendorApprovalStatus?: 'none' | 'pending' | 'approved' | 'rejected' | string | null;
+  riderApprovalStatus?: 'none' | 'pending' | 'approved' | 'rejected' | string | null;
+  riderIsOnline?: boolean;
+  riderIsAvailable?: boolean;
+  approvalStatus?: string;
   createdAt?: string;
 }
 
@@ -238,5 +245,210 @@ export interface BusinessPricing {
   minOrderValue: number;
   convenienceFee: number;
   isConvenienceFeeEnabled: boolean;
+}
+
+// ==========================================
+// PARTNER ECOSYSTEM: RESTAURANT / VENDOR
+// ==========================================
+
+export interface VendorOrderItem {
+  itemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl?: string;
+  isVeg?: boolean;
+  selectedVariation?: any;
+  customizations?: any[];
+}
+
+export interface VendorOrder {
+  id: string;
+  type: string;
+  status: 'ordered' | 'pending' | 'preparing' | 'ready' | 'dispatched' | 'on_the_way' | 'delivered' | 'completed' | 'cancelled' | 'rejected' | string;
+  restaurantId: string;
+  restaurantName: string;
+  customer: {
+    name: string;
+    phone: string;
+    deliveryAddress: string;
+    coordinates?: string;
+  };
+  items: VendorOrderItem[];
+  pricing: {
+    subtotal: number;
+    total: number;
+  };
+  cookingInstructions?: string;
+  pickupPin?: string;
+  prepTimeMinutes?: number;
+  rider?: {
+    name: string | null;
+    phone: string | null;
+  };
+  payment?: {
+    method: string;
+    status: string;
+  };
+  timestamps: {
+    createdAt: string;
+    updatedAt: string;
+    preparingStartedAt?: string;
+    readyAt?: string;
+    cancelledAt?: string;
+    deliveredAt?: string;
+  };
+  cancellation?: {
+    cancelledBy?: string;
+    cancelReason?: string;
+  };
+}
+
+export interface VendorOutlet {
+  id: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  imageUrl?: string | null;
+  bannerUrls?: string[];
+  cuisines?: string[];
+  rating?: number;
+  totalReviews?: number;
+  deliveryTime?: string;
+  priceForOne?: number;
+  phone?: string;
+  email?: string;
+  address?: string;
+  location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  isOpen: boolean;
+  isOnline: boolean;
+  isPromoted?: boolean;
+  approvalStatus: string;
+  status: string;
+  minOrderAmount?: number;
+  businessType?: string;
+  commissionRate?: number;
+  ownerName?: string;
+  ownerPhone?: string;
+  ownerEmail?: string;
+  city?: string;
+  pincode?: string;
+  fssaiNumber?: string;
+  fssaiCertUrl?: string;
+  gstNumber?: string;
+  panNumber?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface VendorCatalogItem {
+  id: string;
+  restaurantId: string;
+  categoryId: string;
+  categoryName?: string;
+  name: string;
+  description?: string;
+  price: number;
+  listingPrice?: number | null;
+  imageUrl?: string | null;
+  isVeg: boolean;
+  isAvailable: boolean;
+  inStock: boolean;
+  isBestseller?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface VendorCategory {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrl?: string | null;
+  restaurantId?: string;
+}
+
+// ==========================================
+// PARTNER ECOSYSTEM: RIDER / DELIVERY
+// ==========================================
+
+export interface RiderOrderItem {
+  itemId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl?: string;
+  isVeg?: boolean;
+}
+
+export interface RiderOrder {
+  id: string;
+  orderType: string;
+  status: 'ordered' | 'pending' | 'preparing' | 'ready' | 'dispatched' | 'on_the_way' | 'delivered' | 'completed' | 'cancelled' | string;
+  restaurant: {
+    id: string;
+    name: string;
+    phone?: string;
+    address?: string;
+    location?: string;
+    coordinates?: string;
+  };
+  customer: {
+    name: string;
+    phone: string;
+    deliveryAddress: string;
+    coordinates?: string;
+  };
+  items: RiderOrderItem[];
+  pricing: {
+    total: number;
+    subtotal: number;
+  };
+  riderPayout: number;
+  payment: {
+    method: string;
+    status: string;
+  };
+  cookingInstructions?: string;
+  timestamps: {
+    createdAt: string;
+    updatedAt: string;
+    acceptedAt?: string;
+    pickupTime?: string;
+    deliveredAt?: string;
+  };
+}
+
+export interface RiderProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  address?: string;
+  city?: string;
+  pincode?: string;
+  vehicleType: string;
+  vehicleNumber?: string;
+  licenseNumber?: string;
+  licenseUrl?: string;
+  vehicleRcUrl?: string;
+  idProofType?: string;
+  idProofNumber?: string;
+  idProofUrl?: string;
+  approvalStatus: string;
+  isOnline: boolean;
+  isAvailable: boolean;
+  totalDeliveries: number;
+  rating: number;
+  walletBalance: number;
+  avatarUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RiderDutyStatus {
+  isOnline: boolean;
+  isAvailable?: boolean;
 }
 

@@ -1,458 +1,437 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { getPublicConfig, applyRestaurantPartner } from '@/lib/api';
 import {
-  Store,
-  ShieldCheck,
+  ShoppingBag,
+  TrendingUp,
+  Clock,
   CheckCircle2,
-  AlertTriangle,
-  ArrowLeft,
-  Loader2,
-  Lock,
+  AlertCircle,
+  Power,
+  Store,
   UtensilsCrossed,
-  MapPin,
-  Phone,
-  Mail,
+  ArrowRight,
+  RefreshCw,
+  Eye,
+  ChefHat,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { PartnerRouteGuard } from '@/components/partner/PartnerRouteGuard';
+import { PartnerLayout } from '@/components/partner/PartnerLayout';
+import {
+  apiGetVendorOrders,
+  apiGetVendorOutlet,
+  apiUpdateVendorOutletStatus,
+  apiAcceptVendorOrder,
+  apiUpdateVendorOrderStatus,
+} from '@/lib/api';
+import type { VendorOrder, VendorOutlet } from '@/lib/types';
 
-export default function BecomeRestaurantPage() {
-  const router = useRouter();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+export default function RestaurantOverviewPage() {
+  return (
+    <PartnerRouteGuard role="vendor">
+      <RestaurantOverviewContent />
+    </PartnerRouteGuard>
+  );
+}
 
-  const [configLoading, setConfigLoading] = useState(true);
-  const [onboardingEnabled, setOnboardingEnabled] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+function RestaurantOverviewContent() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [orders, setOrders] = useState<VendorOrder[]>([]);
+  const [outlet, setOutlet] = useState<VendorOutlet | null>(null);
+  const [togglingStatus, setTogglingStatus] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Form State
-  const [restaurantName, setRestaurantName] = useState('');
-  const [businessType, setBusinessType] = useState('restaurant');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [location, setLocation] = useState('Nirmali Bazar');
-  const [city, setCity] = useState('Nirmali');
-  const [pincode, setPincode] = useState('847452');
-  const [cuisines, setCuisines] = useState('North Indian, Fast Food, Snacks');
-  const [fssaiNumber, setFssaiNumber] = useState('');
-  const [fssaiCertificateDocUrl, setFssaiCertificateDocUrl] = useState('');
-  const [gstNumber, setGstNumber] = useState('');
-  const [panNumber, setPanNumber] = useState('');
-  const [agreeTerms, setAgreeTerms] = useState(false);
+  const loadDashboardData = useCallback(async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
+    else setRefreshing(true);
 
-  useEffect(() => {
-    async function checkConfig() {
-      try {
-        const cfg = await getPublicConfig();
-        if (cfg && cfg.partnerOnboardingEnabled === false) {
-          setOnboardingEnabled(false);
-        }
-      } catch (_err) {
-        // Fallback safely to current state
-      } finally {
-        setConfigLoading(false);
+    try {
+      const [ordersRes, outletRes] = await Promise.allSettled([
+        apiGetVendorOrders({ limit: 15 }),
+        apiGetVendorOutlet(),
+      ]);
+
+      if (ordersRes.status === 'fulfilled') {
+        setOrders(ordersRes.value.data || []);
       }
+      if (outletRes.status === 'fulfilled') {
+        setOutlet(outletRes.value);
+      }
+    } catch (err: any) {
+      console.error('Failed to load restaurant dashboard data:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-    checkConfig();
   }, []);
 
   useEffect(() => {
-    if (user) {
-      setPhone(user.phone ? user.phone.replace(/^\+91/, '') : '');
-      setEmail(user.email || '');
-      if (user.name) {
-        setRestaurantName(`${user.name} Kitchen`);
-      }
-    }
-  }, [user]);
+    loadDashboardData();
+  }, [loadDashboardData]);
 
-  const isFoodBusiness = ['restaurant', 'bakery', 'cafe'].includes(businessType);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!isAuthenticated) {
-      router.push('/login?redirect=/partner/restaurant');
-      return;
-    }
-
-    if (!agreeTerms) {
-      setErrorMsg('Please agree to the Lele Merchant & Restaurant Partner Terms.');
-      return;
-    }
-
-    if (isFoodBusiness) {
-      if (!fssaiNumber.trim() || fssaiNumber.trim().length !== 14) {
-        setErrorMsg('Valid 14-digit FSSAI licence/registration number is required for food businesses.');
-        return;
-      }
-      if (!fssaiCertificateDocUrl.trim()) {
-        setErrorMsg('FSSAI Certificate document / image URL is required.');
-        return;
-      }
-    }
-
-    setSubmitting(true);
-    setErrorMsg('');
+  const handleToggleOnline = async () => {
+    if (!outlet) return;
+    const nextStatus = !outlet.isOnline;
+    setTogglingStatus(true);
+    setFeedbackMsg(null);
 
     try {
-      await applyRestaurantPartner({
-        partnerType: 'vendor',
-        restaurantName: restaurantName.trim(),
-        name: restaurantName.trim(),
-        businessType,
-        phone: phone.trim(),
-        email: email.trim() || undefined,
-        address: address.trim(),
-        location: location.trim() || 'Nirmali Bazar',
-        city: city.trim() || 'Nirmali',
-        pincode: pincode.trim(),
-        cuisines: cuisines.split(',').map((c) => c.trim()).filter(Boolean),
-        fssaiNumber: isFoodBusiness ? fssaiNumber.trim() : undefined,
-        fssaiCertificateDocUrl: isFoodBusiness ? fssaiCertificateDocUrl.trim() : undefined,
-        gstNumber: gstNumber.trim() || undefined,
-        panNumber: panNumber.trim() || undefined,
+      const res = await apiUpdateVendorOutletStatus(nextStatus, outlet.id);
+      setOutlet((prev) => (prev ? { ...prev, isOnline: res.isOnline, isOpen: res.isOpen } : null));
+      setFeedbackMsg({
+        type: 'success',
+        text: `Kitchen outlet is now ${nextStatus ? 'ONLINE & accepting orders' : 'OFFLINE (orders paused)'}`,
       });
-
-      setSubmitted(true);
     } catch (err: any) {
-      console.error('Restaurant application error:', err);
-      if (err?.code === 'ONBOARDING_DISABLED') {
-        setOnboardingEnabled(false);
-      }
-      setErrorMsg(err?.message || 'Failed to submit application. Please try again.');
+      setFeedbackMsg({
+        type: 'error',
+        text: err?.message || 'Failed to update kitchen status. Please try again.',
+      });
     } finally {
-      setSubmitting(false);
+      setTogglingStatus(false);
     }
   };
 
-  if (configLoading || authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-20 px-4">
-        <div className="text-center">
-          <Loader2 className="w-10 h-10 text-red-600 animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500 font-medium">Checking onboarding eligibility...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleQuickAccept = async (orderId: string) => {
+    try {
+      await apiAcceptVendorOrder(orderId, 20);
+      setFeedbackMsg({ type: 'success', text: `Order accepted! Added to active preparation.` });
+      await loadDashboardData(true);
+    } catch (err: any) {
+      setFeedbackMsg({ type: 'error', text: err?.message || 'Failed to accept order.' });
+    }
+  };
 
-  // If onboarding is disabled globally
-  if (!onboardingEnabled) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-20 px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-7 h-7" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Onboarding Temporarily Closed</h2>
-          <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-            New partner registrations are currently paused. If you already have an active profile or pending review, our team is processing it.
-          </p>
-          <Link
-            href="/"
-            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition"
-          >
-            <ArrowLeft className="w-4 h-4" /> Return to Home
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const handleQuickReady = async (orderId: string) => {
+    try {
+      await apiUpdateVendorOrderStatus(orderId, 'ready');
+      setFeedbackMsg({ type: 'success', text: `Order marked READY for rider pickup!` });
+      await loadDashboardData(true);
+    } catch (err: any) {
+      setFeedbackMsg({ type: 'error', text: err?.message || 'Failed to mark order ready.' });
+    }
+  };
 
-  // Success view
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-20 px-4">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Submitted! 🎉</h2>
-          <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-            Congratulations, <strong className="text-gray-900">{restaurantName}</strong>! Your restaurant/shop application has been submitted to Lele Store. Our merchant operations team will inspect your details and activate your digital storefront.
-          </p>
-          <div className="space-y-3">
-            <Link
-              href="/account"
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition"
-            >
-              Go to Account
-            </Link>
-            <Link
-              href="/"
-              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition"
-            >
-              Continue Browsing
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Metrics computation from real authoritative orders
+  const pendingOrders = orders.filter((o) => o.status === 'ordered' || o.status === 'pending');
+  const preparingOrders = orders.filter((o) => o.status === 'preparing');
+  const readyOrders = orders.filter((o) => o.status === 'ready' || o.status === 'dispatched' || o.status === 'on_the_way');
+  const completedOrders = orders.filter((o) => o.status === 'delivered' || o.status === 'completed');
+  const totalRevenue = completedOrders.reduce((sum, o) => sum + (Number(o.pricing?.total) || 0), 0);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        {/* Back Link */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-gray-900 mb-6 transition"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Store
-        </Link>
+    <PartnerLayout
+      role="restaurant"
+      title={outlet?.name || user?.restaurantName || 'Restaurant Overview'}
+      subtitle={`Welcome back, ${user?.name || 'Chef'}. Manage your kitchen orders, dishes, and outlet status.`}
+      actions={
+        <div className="flex items-center gap-3">
+          {/* Outlet Online/Offline Toggle */}
+          {outlet && (
+            <button
+              onClick={handleToggleOnline}
+              disabled={togglingStatus}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                outlet.isOnline
+                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+              } disabled:opacity-60 cursor-pointer`}
+            >
+              <Power className={`w-3.5 h-3.5 ${outlet.isOnline ? 'text-white' : 'text-gray-500'}`} />
+              <span>{outlet.isOnline ? 'Outlet Online' : 'Outlet Offline'}</span>
+            </button>
+          )}
 
-        {/* Header Hero */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 mb-6">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
-              <Store className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-extrabold text-gray-900">Partner with Lele Store</h1>
-              <p className="text-xs sm:text-sm text-gray-500">Sell food, bakery, or groceries online to thousands of Nirmali customers</p>
+          <button
+            onClick={() => loadDashboardData(true)}
+            disabled={refreshing}
+            className="p-2 rounded-xl text-gray-500 hover:text-gray-900 bg-white border border-gray-200 shadow-2xs hover:bg-gray-50 transition"
+            title="Refresh Dashboard"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+      }
+    >
+      {/* Toast Feedback */}
+      {feedbackMsg && (
+        <div
+          className={`mb-6 p-4 rounded-xl text-sm font-medium flex items-center justify-between border ${
+            feedbackMsg.type === 'success'
+              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+              : 'bg-red-50 text-red-900 border-red-200'
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            {feedbackMsg.type === 'success' ? (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            ) : (
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            )}
+            <span>{feedbackMsg.text}</span>
+          </div>
+          <button
+            onClick={() => setFeedbackMsg(null)}
+            className="text-xs text-gray-400 hover:text-gray-600 ml-4 font-bold"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Overview Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+        {/* Pending Orders Card */}
+        <div className="bg-white rounded-2xl p-5 border border-amber-200/80 shadow-xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-700">
+              New / Pending
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
             </div>
           </div>
-
-          {!isAuthenticated && (
-            <div className="p-3.5 bg-orange-50/70 border border-orange-100 rounded-xl text-xs text-orange-900 flex items-center justify-between gap-3">
-              <span>Please sign in with your customer account so we can link your store ownership.</span>
-              <Link
-                href="/login?redirect=/partner/restaurant"
-                className="px-3 py-1 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 transition shrink-0"
-              >
-                Sign In
-              </Link>
-            </div>
-          )}
+          <div className="mt-3">
+            <div className="text-3xl font-black text-gray-900">{pendingOrders.length}</div>
+            <p className="text-xs text-gray-500 mt-0.5">Orders awaiting acceptance</p>
+          </div>
         </div>
 
-        {/* Application Form */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {errorMsg && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 text-red-700 text-sm">
-                <AlertTriangle className="w-5 h-5 shrink-0 text-red-500" />
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
-            {/* Establishment Info */}
-            <div className="space-y-4">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
-                <Store className="w-4 h-4" /> 1. Store / Restaurant Profile
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Establishment Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={restaurantName}
-                    onChange={(e) => setRestaurantName(e.target.value)}
-                    placeholder="e.g. Royal Kitchen & Sweets"
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Business Category *</label>
-                  <select
-                    value={businessType}
-                    onChange={(e) => setBusinessType(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                  >
-                    <option value="restaurant">Restaurant / Dhaba</option>
-                    <option value="bakery">Bakery & Sweets</option>
-                    <option value="grocery">Grocery & Daily Essentials</option>
-                    <option value="cafe">Cafe & Quick Bites</option>
-                    <option value="pharmacy">Pharmacy</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Store Contact Phone *</label>
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="10-digit mobile number"
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Store Email Address</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="store@example.com"
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Shop Address *</label>
-                <input
-                  type="text"
-                  required
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Market Road, Shop No, Landmark"
-                  className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Locality / Landmark *</label>
-                  <input
-                    type="text"
-                    required
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">City *</label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">PIN Code *</label>
-                  <input
-                    type="text"
-                    required
-                    value={pincode}
-                    onChange={(e) => setPincode(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Specialty Cuisines / Categories</label>
-                <input
-                  type="text"
-                  value={cuisines}
-                  onChange={(e) => setCuisines(e.target.value)}
-                  placeholder="e.g. Biryani, North Indian, Fast Food, Sweets"
-                  className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                />
-              </div>
+        {/* Preparing Card */}
+        <div className="bg-white rounded-2xl p-5 border border-blue-200/80 shadow-xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-blue-700">
+              Cooking Now
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+              <ChefHat className="w-4 h-4" />
             </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-3xl font-black text-gray-900">{preparingOrders.length}</div>
+            <p className="text-xs text-gray-500 mt-0.5">Items in kitchen preparation</p>
+          </div>
+        </div>
 
-            {/* FSSAI Food Compliance */}
-            {isFoodBusiness && (
-              <div className="p-4 bg-orange-50/50 border border-orange-100 rounded-xl space-y-4">
-                <div className="text-xs font-bold text-orange-950 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-orange-600" /> Food Safety (FSSAI) Statutory Requirements
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">14-Digit FSSAI Number *</label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={14}
-                      value={fssaiNumber}
-                      onChange={(e) => setFssaiNumber(e.target.value.replace(/\D/g, ''))}
-                      placeholder="14-digit FSSAI number"
-                      className="w-full px-3.5 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">FSSAI Certificate Doc URL *</label>
-                    <input
-                      type="url"
-                      required
-                      value={fssaiCertificateDocUrl}
-                      onChange={(e) => setFssaiCertificateDocUrl(e.target.value)}
-                      placeholder="https://.../fssai_cert.pdf"
-                      className="w-full px-3.5 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/20"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Tax Details */}
-            <div className="space-y-4 pt-4 border-t border-gray-100">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4" /> 2. Tax & Legal (Optional)
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">GSTIN (Optional)</label>
-                  <input
-                    type="text"
-                    value={gstNumber}
-                    onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
-                    placeholder="15-character GST number"
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">PAN Number (Optional)</label>
-                  <input
-                    type="text"
-                    value={panNumber}
-                    onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
-                    placeholder="10-character PAN number"
-                    className="w-full px-3.5 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition"
-                  />
-                </div>
-              </div>
+        {/* Ready / Dispatched Card */}
+        <div className="bg-white rounded-2xl p-5 border border-purple-200/80 shadow-xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-purple-700">
+              Ready for Pickup
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+              <ShoppingBag className="w-4 h-4" />
             </div>
+          </div>
+          <div className="mt-3">
+            <div className="text-3xl font-black text-gray-900">{readyOrders.length}</div>
+            <p className="text-xs text-gray-500 mt-0.5">Awaiting rider delivery pickup</p>
+          </div>
+        </div>
 
-            {/* Terms and Submit */}
-            <div className="space-y-4 pt-4 border-t border-gray-100">
-              <label className="flex items-start gap-3 cursor-pointer text-xs text-gray-600 leading-relaxed">
-                <input
-                  type="checkbox"
-                  checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
-                  className="mt-0.5 rounded border-gray-300 text-red-600 focus:ring-red-500"
-                />
-                <span>
-                  I declare that the establishment details and certificates submitted are genuine. I agree to the{' '}
-                  <Link href="/terms" target="_blank" className="text-red-600 font-semibold underline">
-                    Lele Store Merchant Partner Agreement
-                  </Link>{' '}
-                  and platform hygiene guidelines.
-                </span>
-              </label>
-
-              <button
-                type="submit"
-                disabled={submitting || !isAuthenticated}
-                className="w-full py-3.5 px-6 bg-red-600 hover:bg-red-700 disabled:bg-gray-300 text-white font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> Submitting Application...
-                  </>
-                ) : (
-                  'Submit Restaurant / Shop Application'
-                )}
-              </button>
+        {/* Total Sales Card */}
+        <div className="bg-white rounded-2xl p-5 border border-emerald-200/80 shadow-xs relative overflow-hidden">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">
+              Delivered Sales
+            </span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
             </div>
-          </form>
+          </div>
+          <div className="mt-3">
+            <div className="text-3xl font-black text-gray-900">
+              ₹{Math.round(totalRevenue).toLocaleString('en-IN')}
+            </div>
+            <p className="text-xs text-gray-500 mt-0.5">From {completedOrders.length} completed orders</p>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Quick Navigation Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <Link
+          href="/partner/restaurant/orders"
+          className="bg-gradient-to-r from-red-600 to-rose-600 rounded-2xl p-5 text-white shadow-md hover:shadow-lg transition-all flex items-center justify-between group"
+        >
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-red-100">
+              Live Kitchen
+            </span>
+            <h3 className="text-lg font-black mt-1">Manage Orders</h3>
+            <p className="text-xs text-red-100 mt-0.5">Accept, prepare & track live kitchen queue</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+            <ArrowRight className="w-5 h-5 text-white" />
+          </div>
+        </Link>
+
+        <Link
+          href="/partner/restaurant/menu"
+          className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs hover:border-gray-300 hover:shadow-md transition-all flex items-center justify-between group"
+        >
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+              Menu & Catalog
+            </span>
+            <h3 className="text-lg font-black text-gray-900 mt-1">Edit Dishes & Pricing</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Add dishes, toggle in-stock items & photos</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center group-hover:translate-x-1 transition-transform text-gray-600">
+            <UtensilsCrossed className="w-5 h-5" />
+          </div>
+        </Link>
+
+        <Link
+          href="/partner/restaurant/reports"
+          className="bg-white rounded-2xl p-5 border border-gray-200 shadow-xs hover:border-gray-300 hover:shadow-md transition-all flex items-center justify-between group"
+        >
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+              Performance
+            </span>
+            <h3 className="text-lg font-black text-gray-900 mt-1">Sales & Earnings</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Track daily order volume & revenue</p>
+          </div>
+          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center group-hover:translate-x-1 transition-transform text-gray-600">
+            <TrendingUp className="w-5 h-5" />
+          </div>
+        </Link>
+      </div>
+
+      {/* Live Orders Section */}
+      <div className="bg-white rounded-2xl border border-gray-200/90 shadow-xs overflow-hidden">
+        <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">Recent Kitchen Orders</h2>
+            <p className="text-xs text-gray-500">Live order stream updated from backend</p>
+          </div>
+          <Link
+            href="/partner/restaurant/orders"
+            className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
+          >
+            View All ({orders.length}) <ChevronRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="p-12 text-center text-gray-400">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-red-500" />
+            <p className="text-xs font-medium">Loading live kitchen orders...</p>
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="p-12 text-center text-gray-400">
+            <ShoppingBag className="w-10 h-10 mx-auto mb-3 text-gray-300" />
+            <h3 className="text-sm font-bold text-gray-700">No Orders Yet</h3>
+            <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+              New customer orders placed for your kitchen will appear here automatically in real time.
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {orders.slice(0, 5).map((order) => {
+              const isPending = order.status === 'ordered' || order.status === 'pending';
+              const isPreparing = order.status === 'preparing';
+
+              return (
+                <div
+                  key={order.id}
+                  className="p-4 sm:p-5 hover:bg-gray-50/80 transition flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+                >
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="font-mono text-xs font-bold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
+                        #{order.id.slice(-6).toUpperCase()}
+                      </span>
+                      <span
+                        className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                          order.status === 'ordered' || order.status === 'pending'
+                            ? 'bg-amber-100 text-amber-800'
+                            : order.status === 'preparing'
+                            ? 'bg-blue-100 text-blue-800'
+                            : order.status === 'ready'
+                            ? 'bg-purple-100 text-purple-800'
+                            : order.status === 'delivered' || order.status === 'completed'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {order.status}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {new Date(order.timestamps?.createdAt || Date.now()).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="text-xs text-gray-700 font-medium">
+                      Customer:{' '}
+                      <strong className="text-gray-900">{order.customer?.name || 'Customer'}</strong>
+                      {order.customer?.phone && ` (${order.customer.phone})`}
+                    </div>
+
+                    {/* Order Items Snippet */}
+                    <div className="text-xs text-gray-500 truncate">
+                      {order.items?.map((it) => `${it.quantity}x ${it.name}`).join(', ') || 'No item details'}
+                    </div>
+
+                    {order.cookingInstructions && (
+                      <div className="text-xs text-amber-800 bg-amber-50 px-2.5 py-1 rounded-md inline-block">
+                        Note: &ldquo;{order.cookingInstructions}&rdquo;
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0">
+                    <div className="text-right sm:mr-2">
+                      <div className="text-base font-black text-gray-900">
+                        ₹{Math.round(order.pricing?.total || 0)}
+                      </div>
+                      <div className="text-[11px] text-gray-400 uppercase">
+                        {order.payment?.method || 'COD'}
+                      </div>
+                    </div>
+
+                    {isPending && (
+                      <button
+                        onClick={() => handleQuickAccept(order.id)}
+                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-xs"
+                      >
+                        Accept (20m)
+                      </button>
+                    )}
+
+                    {isPreparing && (
+                      <button
+                        onClick={() => handleQuickReady(order.id)}
+                        className="px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 transition shadow-xs"
+                      >
+                        Mark Ready
+                      </button>
+                    )}
+
+                    <Link
+                      href={`/partner/restaurant/orders?orderId=${order.id}`}
+                      className="p-2 rounded-xl text-gray-500 hover:text-gray-900 hover:bg-gray-100 border border-gray-200 transition"
+                      title="View Details"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </PartnerLayout>
   );
 }
