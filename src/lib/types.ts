@@ -96,7 +96,7 @@ export interface CartData {
 
 export interface UserProfile {
   id: string;
-  uid: string;
+  uid?: string;
   name: string;
   email: string;
   phone?: string;
@@ -106,6 +106,10 @@ export interface UserProfile {
   walletBalance?: number;
   isEmailVerified?: boolean;
   emailVerified?: boolean;
+  isBlocked?: boolean;
+  isDeactivated?: boolean;
+  status?: string;
+  blockReason?: string;
   restaurantId?: string | null;
   restaurantName?: string | null;
   vendorApprovalStatus?: 'none' | 'pending' | 'approved' | 'rejected' | string | null;

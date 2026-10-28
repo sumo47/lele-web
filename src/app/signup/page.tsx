@@ -1,18 +1,19 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, User, Phone, Eye, EyeOff, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { determinePostLoginRedirect } from '@/lib/auth-redirect';
 
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/';
-  const { signup } = useAuth();
+  const rawRedirect = searchParams.get('redirect');
+  const { user, isAuthenticated, loading, signup } = useAuth();
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,6 +24,14 @@ function SignupForm() {
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // If already authenticated, redirect automatically
+  useEffect(() => {
+    if (!loading && isAuthenticated && user) {
+      const targetPath = determinePostLoginRedirect(user, rawRedirect);
+      router.replace(targetPath);
+    }
+  }, [loading, isAuthenticated, user, rawRedirect, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,14 +53,15 @@ function SignupForm() {
     setSubmitting(true);
     setErrorMsg(null);
     try {
-      await signup({
+      const profile = await signup({
         name: name.trim(),
         email: email.trim().toLowerCase(),
         phone: phone.trim() || undefined,
         password,
         confirmPassword,
       });
-      router.push(redirectPath);
+      const targetPath = determinePostLoginRedirect(profile, rawRedirect);
+      router.push(targetPath);
     } catch (err: any) {
       setErrorMsg(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -185,7 +195,7 @@ function SignupForm() {
 
         {/* Google Sign-In */}
         <GoogleSignInButton
-          redirectPath={redirectPath}
+          redirectPath={rawRedirect || '/'}
           mode="signup"
           onError={(msg) => setErrorMsg(msg)}
         />
@@ -193,7 +203,7 @@ function SignupForm() {
         <div className="text-center text-xs text-gray-500 pt-2 border-t border-gray-100">
           <span>Already have an account? </span>
           <Link
-            href={`/login${redirectPath !== '/' ? `?redirect=${encodeURIComponent(redirectPath)}` : ''}`}
+            href={`/login${rawRedirect && rawRedirect !== '/' ? `?redirect=${encodeURIComponent(rawRedirect)}` : ''}`}
             className="font-bold text-red-600 hover:underline"
           >
             Sign In here

@@ -6,9 +6,11 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { MapPin, Phone, Mail, Clock, ShieldCheck, Heart, Bike, Store } from 'lucide-react';
 import { getPublicConfig } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Footer() {
   const pathname = usePathname();
+  const { isVendorApproved, isRiderApproved, isVendorPending, isRiderPending } = useAuth();
   const [onboardingEnabled, setOnboardingEnabled] = useState(true);
 
   useEffect(() => {
@@ -93,19 +95,49 @@ export default function Footer() {
               <li>
                 <Link href="/account" className="hover:text-red-400 transition">Customer Profile</Link>
               </li>
-              {onboardingEnabled && (
-                <>
-                  <li className="pt-2 border-t border-gray-800">
-                    <Link href="/partner/rider/apply" className="text-blue-400 hover:text-blue-300 font-medium transition flex items-center gap-1.5">
-                      <Bike className="w-3.5 h-3.5" /> Become a Rider
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/partner/restaurant/apply" className="text-orange-400 hover:text-orange-300 font-medium transition flex items-center gap-1.5">
-                      <Store className="w-3.5 h-3.5" /> Become a Restaurant Partner
-                    </Link>
-                  </li>
-                </>
+              {/* Role-aware partner links */}
+              {isRiderApproved && (
+                <li className="pt-2 border-t border-gray-800">
+                  <Link href="/partner/rider" className="text-emerald-400 hover:text-emerald-300 font-bold transition flex items-center gap-1.5">
+                    <Bike className="w-3.5 h-3.5" /> Rider Dashboard
+                  </Link>
+                </li>
+              )}
+              {isRiderPending && (
+                <li className="pt-2 border-t border-gray-800">
+                  <Link href="/partner/rider" className="text-blue-400 hover:text-blue-300 font-medium transition flex items-center gap-1.5">
+                    <Bike className="w-3.5 h-3.5" /> Rider Application Under Review
+                  </Link>
+                </li>
+              )}
+              {!isRiderApproved && !isRiderPending && !isVendorApproved && !isVendorPending && onboardingEnabled && (
+                <li className="pt-2 border-t border-gray-800">
+                  <Link href="/partner/rider/apply" className="text-blue-400 hover:text-blue-300 font-medium transition flex items-center gap-1.5">
+                    <Bike className="w-3.5 h-3.5" /> Become a Rider
+                  </Link>
+                </li>
+              )}
+
+              {isVendorApproved && (
+                <li>
+                  <Link href="/partner/restaurant" className="text-amber-400 hover:text-amber-300 font-bold transition flex items-center gap-1.5">
+                    <Store className="w-3.5 h-3.5" /> Restaurant Dashboard
+                  </Link>
+                </li>
+              )}
+              {isVendorPending && (
+                <li>
+                  <Link href="/partner/restaurant" className="text-amber-400 hover:text-amber-300 font-medium transition flex items-center gap-1.5">
+                    <Store className="w-3.5 h-3.5" /> Restaurant Application Under Review
+                  </Link>
+                </li>
+              )}
+              {!isVendorApproved && !isVendorPending && !isRiderApproved && !isRiderPending && onboardingEnabled && (
+                <li>
+                  <Link href="/partner/restaurant/apply" className="text-orange-400 hover:text-orange-300 font-medium transition flex items-center gap-1.5">
+                    <Store className="w-3.5 h-3.5" /> Become a Restaurant Partner
+                  </Link>
+                </li>
               )}
               <li>
                 <Link href="/partner" className="text-gray-400 hover:text-gray-200 transition">

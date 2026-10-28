@@ -12,6 +12,8 @@ import {
   setStoredToken,
 } from '@/lib/api';
 
+import { resolvePartnerStatus } from '@/lib/auth-redirect';
+
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
@@ -23,17 +25,17 @@ interface AuthContextType {
   isVendorRejected: boolean;
   isRiderRejected: boolean;
   hasPartnerRole: boolean;
-  login: (credentials: { email: string; password: string }) => Promise<void>;
-  loginWithGoogle: (idToken: string) => Promise<void>;
+  login: (credentials: { email: string; password: string }) => Promise<UserProfile | null>;
+  loginWithGoogle: (idToken: string) => Promise<UserProfile | null>;
   signup: (data: {
     name: string;
     email: string;
     password: string;
     confirmPassword: string;
     phone?: string;
-  }) => Promise<void>;
+  }) => Promise<UserProfile | null>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<UserProfile | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,21 +44,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshUser = useCallback(async () => {
+  const refreshUser = useCallback(async (): Promise<UserProfile | null> => {
     const token = getStoredToken();
     if (!token) {
       setUser(null);
       setLoading(false);
-      return;
+      return null;
     }
 
     try {
       const profile = await apiGetMe();
       setUser(profile);
+      return profile;
     } catch {
       // Token expired or invalid
       setStoredToken(null);
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -66,21 +70,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshUser();
   }, [refreshUser]);
 
-  const login = async (credentials: { email: string; password: string }) => {
+  const login = async (credentials: { email: string; password: string }): Promise<UserProfile | null> => {
     setLoading(true);
     try {
       await apiLogin(credentials);
-      await refreshUser();
+      return await refreshUser();
     } finally {
       setLoading(false);
     }
   };
 
-  const loginWithGoogle = async (idToken: string) => {
+  const loginWithGoogle = async (idToken: string): Promise<UserProfile | null> => {
     setLoading(true);
     try {
       await apiGoogleLogin(idToken);
-      await refreshUser();
+      return await refreshUser();
     } finally {
       setLoading(false);
     }
@@ -92,11 +96,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string;
     confirmPassword: string;
     phone?: string;
-  }) => {
+  }): Promise<UserProfile | null> => {
     setLoading(true);
     try {
       await apiSignup(data);
-      await refreshUser();
+      return await refreshUser();
     } finally {
       setLoading(false);
     }
@@ -112,29 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const roles = Array.isArray(user?.roles) ? user!.roles! : user?.role ? [user.role] : [];
-  const isAdmin = roles.includes('admin') || roles.includes('superadmin');
-
-  // Vendor status resolution
-  const isVendorApproved =
-    isAdmin ||
-    ((roles.includes('vendor') || user?.role === 'vendor') &&
-      user?.vendorApprovalStatus === 'approved') ||
-    Boolean(user?.restaurantId && user?.vendorApprovalStatus === 'approved');
-
-  const isVendorPending = user?.vendorApprovalStatus === 'pending';
-  const isVendorRejected = user?.vendorApprovalStatus === 'rejected';
-
-  // Rider status resolution
-  const isRiderApproved =
-    isAdmin ||
-    ((roles.includes('rider') || user?.role === 'rider') &&
-      user?.riderApprovalStatus === 'approved');
-
-  const isRiderPending = user?.riderApprovalStatus === 'pending';
-  const isRiderRejected = user?.riderApprovalStatus === 'rejected';
-
-  const hasPartnerRole = isVendorApproved || isRiderApproved;
+  const partnerStatus = resolvePartnerStatus(user);
 
   return (
     <AuthContext.Provider
@@ -142,13 +124,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         loading,
         isAuthenticated: Boolean(user),
-        isVendorApproved,
-        isRiderApproved,
-        isVendorPending,
-        isRiderPending,
-        isVendorRejected,
-        isRiderRejected,
-        hasPartnerRole,
+        isVendorApproved: partnerStatus.isVendorApproved,
+        isRiderApproved: partnerStatus.isRiderApproved,
+        isVendorPending: partnerStatus.isVendorPending,
+        isRiderPending: partnerStatus.isRiderPending,
+        isVendorRejected: partnerStatus.isVendorRejected,
+        isRiderRejected: partnerStatus.isRiderRejected,
+        hasPartnerRole: partnerStatus.hasPartnerRole,
         login,
         loginWithGoogle,
         signup,

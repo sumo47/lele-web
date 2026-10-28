@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
+import { determinePostLoginRedirect } from '@/lib/auth-redirect';
+
 interface GoogleSignInButtonProps {
   redirectPath?: string;
   mode?: 'login' | 'signup';
@@ -25,19 +27,6 @@ declare global {
       };
     };
   }
-}
-
-/**
- * Sanitizes redirect URL to prevent open redirect vulnerabilities.
- * Allows only relative paths starting with a single forward slash.
- */
-function getSafeRedirectPath(rawPath: string | undefined): string {
-  if (!rawPath) return '/';
-  // Disallow absolute URLs (http://, https://), protocol-relative (//), or backslashes (/\)
-  if (rawPath.startsWith('/') && !rawPath.startsWith('//') && !rawPath.startsWith('/\\')) {
-    return rawPath;
-  }
-  return '/';
 }
 
 export function GoogleSignInButton({
@@ -69,9 +58,9 @@ export function GoogleSignInButton({
       setLoading(true);
       setLocalError(null);
       try {
-        await loginWithGoogle(idToken);
-        const safePath = getSafeRedirectPath(redirectPath);
-        router.push(safePath);
+        const profile = await loginWithGoogle(idToken);
+        const targetPath = determinePostLoginRedirect(profile, redirectPath);
+        router.push(targetPath);
       } catch (err: any) {
         const errorMsg =
           err?.message ||

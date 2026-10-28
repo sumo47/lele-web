@@ -18,7 +18,16 @@ import {
 import { useAuth } from '@/context/AuthContext';
 
 export default function PartnerHubPage() {
-  const { user, isAuthenticated, isVendorApproved, isRiderApproved } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    isVendorApproved,
+    isRiderApproved,
+    isVendorPending,
+    isRiderPending,
+    isVendorRejected,
+    isRiderRejected,
+  } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900">
@@ -109,6 +118,22 @@ export default function PartnerHubPage() {
                   <span>Go to Restaurant Dashboard</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
+              ) : isVendorPending ? (
+                <Link
+                  href="/partner/restaurant"
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 transition shadow-sm border border-amber-300"
+                >
+                  <span>Restaurant Application (Under Review)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              ) : isVendorRejected ? (
+                <Link
+                  href="/partner/restaurant"
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-red-900 bg-red-100 hover:bg-red-200 transition shadow-sm border border-red-300"
+                >
+                  <span>Application Rejected — View Status</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
               ) : (
                 <Link
                   href="/partner/restaurant/apply"
@@ -161,6 +186,22 @@ export default function PartnerHubPage() {
                   className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-md"
                 >
                   <span>Go to Rider Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              ) : isRiderPending ? (
+                <Link
+                  href="/partner/rider"
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-blue-900 bg-blue-100 hover:bg-blue-200 transition shadow-sm border border-blue-300"
+                >
+                  <span>Rider Application (Under Review)</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              ) : isRiderRejected ? (
+                <Link
+                  href="/partner/rider"
+                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl text-sm font-bold text-red-900 bg-red-100 hover:bg-red-200 transition shadow-sm border border-red-300"
+                >
+                  <span>Application Rejected — View Status</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               ) : (

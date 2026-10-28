@@ -28,7 +28,16 @@ import ProfilePhotoUploadModal from '@/components/ui/ProfilePhotoUploadModal';
 
 export default function AccountPage() {
   const router = useRouter();
-  const { user, loading, logout, refreshUser, isVendorApproved, isRiderApproved } = useAuth();
+  const {
+    user,
+    loading,
+    logout,
+    refreshUser,
+    isVendorApproved,
+    isRiderApproved,
+    isVendorPending,
+    isRiderPending,
+  } = useAuth();
 
   const [isEditing, setIsEditing] = useState(false);
   const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
@@ -211,12 +220,13 @@ export default function AccountPage() {
         </div>
 
         {/* Partner Mode Switcher Banner / Cards */}
-        {(isVendorApproved || isRiderApproved) && (
+        {(isVendorApproved || isRiderApproved || isVendorPending || isRiderPending) && (
           <div className="space-y-3">
             <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">
               Partner Consoles
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Approved Restaurant */}
               {isVendorApproved && (
                 <Link
                   href="/partner/restaurant"
@@ -238,6 +248,29 @@ export default function AccountPage() {
                 </Link>
               )}
 
+              {/* Pending Restaurant */}
+              {isVendorPending && (
+                <Link
+                  href="/partner/restaurant"
+                  className="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-amber-900 shadow-sm hover:shadow-md transition flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-amber-700">
+                      <Store className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 block">
+                        Application Under Review
+                      </span>
+                      <h3 className="font-extrabold text-base text-gray-900">Restaurant Partner Status</h3>
+                      <p className="text-xs text-gray-600">Verification in progress by onboarding team</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform text-amber-700" />
+                </Link>
+              )}
+
+              {/* Approved Rider */}
               {isRiderApproved && (
                 <Link
                   href="/partner/rider"
@@ -258,6 +291,70 @@ export default function AccountPage() {
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               )}
+
+              {/* Pending Rider */}
+              {isRiderPending && (
+                <Link
+                  href="/partner/rider"
+                  className="bg-blue-50 border border-blue-200 rounded-2xl p-5 text-blue-900 shadow-sm hover:shadow-md transition flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700">
+                      <Bike className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 block">
+                        Application Under Review
+                      </span>
+                      <h3 className="font-extrabold text-base text-gray-900">Rider Partner Status</h3>
+                      <p className="text-xs text-gray-600">Document inspection in progress</p>
+                    </div>
+                  </div>
+                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform text-blue-700" />
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* For Customer-only accounts without pending applications */}
+        {!isVendorApproved && !isVendorPending && !isRiderApproved && !isRiderPending && (
+          <div className="space-y-3">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">
+              Partner with LELE
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link
+                href="/partner/restaurant/apply"
+                className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs hover:border-orange-300 hover:shadow-sm transition flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
+                    <Store className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-sm">Become a Restaurant Partner</h3>
+                    <p className="text-xs text-gray-500">List your kitchen and grow online sales</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 group-hover:text-orange-600 transition" />
+              </Link>
+
+              <Link
+                href="/partner/rider/apply"
+                className="bg-white border border-gray-200 rounded-2xl p-5 shadow-xs hover:border-blue-300 hover:shadow-sm transition flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                    <Bike className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-sm">Become a Delivery Rider</h3>
+                    <p className="text-xs text-gray-500">Flexible hours and weekly payouts</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 group-hover:text-blue-600 transition" />
+              </Link>
             </div>
           </div>
         )}

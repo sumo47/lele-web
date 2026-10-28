@@ -27,7 +27,17 @@ import UserAvatar from '@/components/ui/UserAvatar';
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, isAuthenticated, logout, isVendorApproved, isRiderApproved } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    logout,
+    isVendorApproved,
+    isRiderApproved,
+    isVendorPending,
+    isRiderPending,
+    isVendorRejected,
+    isRiderRejected,
+  } = useAuth();
   const { totalItemsCount, openCart } = useCart();
   const { favorites } = useWishlist();
 
@@ -73,14 +83,46 @@ export default function Navbar() {
             <span>⚡ Piping hot food delivered in 25-35 mins across Nirmali, Bihar</span>
           </div>
           <div className="hidden md:flex items-center gap-4 text-red-100">
-            {onboardingEnabled && (
+            {isVendorApproved && (
+              <>
+                <Link href="/partner/restaurant" className="hover:text-white transition font-semibold text-yellow-300">
+                  🏬 Restaurant Dashboard
+                </Link>
+                <span className="opacity-40">|</span>
+              </>
+            )}
+            {isRiderApproved && (
               <>
                 <Link href="/partner/rider" className="hover:text-white transition font-semibold text-yellow-300">
+                  🛵 Rider Dashboard
+                </Link>
+                <span className="opacity-40">|</span>
+              </>
+            )}
+            {isVendorPending && (
+              <>
+                <Link href="/partner/restaurant" className="hover:text-white transition font-semibold text-yellow-300">
+                  ⏳ Restaurant Review Pending
+                </Link>
+                <span className="opacity-40">|</span>
+              </>
+            )}
+            {isRiderPending && (
+              <>
+                <Link href="/partner/rider" className="hover:text-white transition font-semibold text-yellow-300">
+                  ⏳ Rider Review Pending
+                </Link>
+                <span className="opacity-40">|</span>
+              </>
+            )}
+            {!isVendorApproved && !isVendorPending && !isRiderApproved && !isRiderPending && onboardingEnabled && (
+              <>
+                <Link href="/partner/rider/apply" className="hover:text-white transition font-semibold text-yellow-300">
                   🛵 Become a Rider
                 </Link>
                 <span className="opacity-40">|</span>
-                <Link href="/partner/restaurant" className="hover:text-white transition font-semibold text-yellow-300">
-                  🏬 Become a Shop
+                <Link href="/partner/restaurant/apply" className="hover:text-white transition font-semibold text-yellow-300">
+                  🏬 Become a Restaurant Partner
                 </Link>
                 <span className="opacity-40">|</span>
               </>
@@ -273,7 +315,47 @@ export default function Navbar() {
                       </Link>
                     )}
 
-                    {!isVendorApproved && !isRiderApproved && onboardingEnabled && (
+                    {isVendorPending && (
+                      <Link
+                        href="/partner/restaurant"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-amber-600 bg-amber-50/40 hover:bg-amber-100 transition"
+                      >
+                        ⏳ Restaurant Review Pending
+                      </Link>
+                    )}
+
+                    {isRiderPending && (
+                      <Link
+                        href="/partner/rider"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-blue-600 bg-blue-50/40 hover:bg-blue-100 transition"
+                      >
+                        ⏳ Rider Review Pending
+                      </Link>
+                    )}
+
+                    {isVendorRejected && (
+                      <Link
+                        href="/partner/restaurant"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-red-600 bg-red-50/40 hover:bg-red-100 transition"
+                      >
+                        ⚠️ Restaurant Application Rejected
+                      </Link>
+                    )}
+
+                    {isRiderRejected && (
+                      <Link
+                        href="/partner/rider"
+                        onClick={() => setUserDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-1.5 text-xs font-semibold text-red-600 bg-red-50/40 hover:bg-red-100 transition"
+                      >
+                        ⚠️ Rider Application Rejected
+                      </Link>
+                    )}
+
+                    {!isVendorApproved && !isVendorPending && !isRiderApproved && !isRiderPending && onboardingEnabled && (
                       <>
                         <Link
                           href="/partner/rider/apply"
@@ -395,25 +477,70 @@ export default function Navbar() {
                 <User className="w-5 h-5 text-red-600" />
                 Account Profile
               </Link>
-              {onboardingEnabled && (
-                <div className="pt-2 border-t border-gray-100 flex flex-col gap-1">
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 px-2">Partner with LELE</span>
-                  <Link
-                    href="/partner/rider"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-2"
-                  >
-                    🛵 Become a Delivery Rider
-                  </Link>
+              <div className="pt-2 border-t border-gray-100 flex flex-col gap-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 px-2">Partner with LELE</span>
+                {isVendorApproved && (
                   <Link
                     href="/partner/restaurant"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="p-2 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded-lg flex items-center gap-2"
+                    className="p-2 text-xs font-bold text-amber-700 bg-amber-50/60 hover:bg-amber-100 rounded-lg flex items-center gap-2"
                   >
-                    🏬 Become a Shop / Restaurant
+                    🏬 Restaurant Dashboard
                   </Link>
-                </div>
-              )}
+                )}
+                {isRiderApproved && (
+                  <Link
+                    href="/partner/rider"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 text-xs font-bold text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100 rounded-lg flex items-center gap-2"
+                  >
+                    🛵 Rider Dashboard
+                  </Link>
+                )}
+                {isVendorPending && (
+                  <Link
+                    href="/partner/restaurant"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 text-xs font-semibold text-amber-600 bg-amber-50/40 hover:bg-amber-100 rounded-lg flex items-center gap-2"
+                  >
+                    ⏳ Restaurant Review Pending
+                  </Link>
+                )}
+                {isRiderPending && (
+                  <Link
+                    href="/partner/rider"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 text-xs font-semibold text-blue-600 bg-blue-50/40 hover:bg-blue-100 rounded-lg flex items-center gap-2"
+                  >
+                    ⏳ Rider Review Pending
+                  </Link>
+                )}
+                {!isVendorApproved && !isVendorPending && !isRiderApproved && !isRiderPending && onboardingEnabled && (
+                  <>
+                    <Link
+                      href="/partner/rider/apply"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="p-2 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg flex items-center gap-2"
+                    >
+                      🛵 Become a Delivery Rider
+                    </Link>
+                    <Link
+                      href="/partner/restaurant/apply"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="p-2 text-xs font-semibold text-orange-600 hover:bg-orange-50 rounded-lg flex items-center gap-2"
+                    >
+                      🏬 Become a Restaurant Partner
+                    </Link>
+                  </>
+                )}
+                <Link
+                  href="/partner"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 text-xs font-medium text-gray-700 hover:bg-gray-50 rounded-lg flex items-center gap-2"
+                >
+                  🤝 Partner Hub
+                </Link>
+              </div>
             </nav>
             <div className="pt-2 border-t border-gray-100 flex gap-2">
               {!isAuthenticated ? (

@@ -14,11 +14,21 @@ import {
   Loader2,
   User,
   Lock,
+  Clock,
+  Store,
 } from 'lucide-react';
 
 export default function BecomeRiderPage() {
   const router = useRouter();
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    loading: authLoading,
+    isVendorApproved,
+    isVendorPending,
+    isRiderApproved,
+    isRiderPending,
+  } = useAuth();
 
   const [configLoading, setConfigLoading] = useState(true);
   const [onboardingEnabled, setOnboardingEnabled] = useState(true);
@@ -140,6 +150,78 @@ export default function BecomeRiderPage() {
         <div className="text-center">
           <Loader2 className="w-10 h-10 text-red-600 animate-spin mx-auto mb-3" />
           <p className="text-sm text-gray-500 font-medium">Checking onboarding eligibility...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isRiderApproved) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-20 px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-gray-100 p-8 text-center space-y-4">
+          <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <Bike className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Already Registered!</h2>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Your account is already an approved Delivery Partner. You can view broadcast orders, active trips, and track your wallet payouts from your rider console.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/partner/rider"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-md"
+            >
+              <span>Launch Rider Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isRiderPending) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-20 px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-gray-100 p-8 text-center space-y-4">
+          <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <Clock className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Application Under Review</h2>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            You already have a pending delivery fleet application under review. Our operations team is inspecting your driving licence and vehicle records.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/partner/rider"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition shadow-md"
+            >
+              <span>Check Application Status</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isVendorApproved || isVendorPending) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-20 px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-gray-100 p-8 text-center space-y-4">
+          <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <Store className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black text-gray-900 tracking-tight">Restaurant Partner Active</h2>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Your account is associated with a restaurant partner or has a pending kitchen application. Per LELE policy, an account can be Customer+Rider OR Customer+Shop Owner.
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/partner/restaurant"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition shadow-md"
+            >
+              <span>Go to Restaurant Console</span>
+            </Link>
+          </div>
         </div>
       </div>
     );
