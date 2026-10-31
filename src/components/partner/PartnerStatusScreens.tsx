@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { Clock, AlertTriangle, XCircle, ShieldAlert, ArrowLeft, Store, Bike, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
-export function PartnerPendingScreen({ type }: { type: 'restaurant' | 'rider' }) {
+export function PartnerPendingScreen({ type }: { type: 'restaurant' | 'rider' | 'shop' }) {
   const { refreshUser, loading } = useAuth();
-  const isRestaurant = type === 'restaurant';
+  const title = type === 'shop' ? 'Shop Partner' : type === 'restaurant' ? 'Restaurant Outlet' : 'Delivery Partner';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50/50 via-white to-orange-50/30 flex items-center justify-center p-4">
@@ -21,10 +21,10 @@ export function PartnerPendingScreen({ type }: { type: 'restaurant' | 'rider' })
             Verification In Progress
           </span>
           <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-            {isRestaurant ? 'Restaurant Application Under Review' : 'Rider Application Under Review'}
+            {title} Application Under Review
           </h2>
           <p className="text-sm text-gray-600 leading-relaxed">
-            Your {isRestaurant ? 'restaurant outlet' : 'delivery partner'} application has been submitted and is currently being verified by the LELE administration team. You will receive access as soon as it is approved.
+            Your {title.toLowerCase()} application has been submitted and is currently being verified by the LELE administration team. You will receive access as soon as it is approved.
           </p>
         </div>
 
@@ -34,9 +34,9 @@ export function PartnerPendingScreen({ type }: { type: 'restaurant' | 'rider' })
             Verification Checklist
           </div>
           <ul className="list-disc pl-4 space-y-1 text-gray-700">
-            <li>Document & Identity verification</li>
-            <li>{isRestaurant ? 'FSSAI & Kitchen hygiene verification' : 'Driver license & vehicle check'}</li>
-            <li>Admin activation within 24-48 business hours</li>
+            <li>Identity and store ownership validation</li>
+            <li>Catalog eligibility and location verification</li>
+            <li>Admin activation within 24 business hours</li>
           </ul>
         </div>
 
@@ -66,10 +66,11 @@ export function PartnerRejectedScreen({
   type,
   reason,
 }: {
-  type: 'restaurant' | 'rider';
+  type: 'restaurant' | 'rider' | 'shop';
   reason?: string;
 }) {
-  const isRestaurant = type === 'restaurant';
+  const title = type === 'shop' ? 'Shop' : type === 'restaurant' ? 'Restaurant' : 'Rider';
+  const applyHref = type === 'shop' ? '/partner/shop/apply' : type === 'restaurant' ? '/partner/restaurant/apply' : '/partner/rider/apply';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-50/50 via-white to-pink-50/30 flex items-center justify-center p-4">
@@ -83,10 +84,10 @@ export function PartnerRejectedScreen({
             Application Rejected
           </span>
           <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-            {isRestaurant ? 'Restaurant Application Not Approved' : 'Rider Application Not Approved'}
+            {title} Application Not Approved
           </h2>
           <p className="text-sm text-gray-600 leading-relaxed">
-            Your {isRestaurant ? 'restaurant partner' : 'delivery partner'} application could not be approved by the administration team at this time.
+            Your {title.toLowerCase()} partner application could not be approved by the administration team at this time.
           </p>
         </div>
 
@@ -99,7 +100,7 @@ export function PartnerRejectedScreen({
 
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <Link
-            href={isRestaurant ? '/partner/restaurant/apply' : '/partner/rider/apply'}
+            href={applyHref}
             className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm"
           >
             Re-apply Now
@@ -149,8 +150,11 @@ export function PartnerBlockedScreen() {
   );
 }
 
-export function PartnerUnauthorizedScreen({ type }: { type: 'restaurant' | 'rider' }) {
+export function PartnerUnauthorizedScreen({ type }: { type: 'restaurant' | 'rider' | 'shop' }) {
   const isRestaurant = type === 'restaurant';
+  const isShop = type === 'shop';
+  const applyHref = isShop ? '/partner/shop/apply' : isRestaurant ? '/partner/restaurant/apply' : '/partner/rider/apply';
+  const title = isShop ? 'Shop Partner' : isRestaurant ? 'Restaurant Partner' : 'Delivery Rider';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 flex items-center justify-center p-4">
@@ -161,19 +165,19 @@ export function PartnerUnauthorizedScreen({ type }: { type: 'restaurant' | 'ride
 
         <div className="space-y-2">
           <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">
-            {isRestaurant ? 'Partner with LELE Kitchens' : 'Deliver with LELE'}
+            Partner with LELE
           </h2>
           <p className="text-sm text-gray-600 leading-relaxed">
-            Your account is currently registered as a customer. To access the {isRestaurant ? 'Restaurant' : 'Rider'} Partner Dashboard, please apply to join our verified partner network.
+            Your account is currently registered as a customer. To access the {title} Dashboard, please apply to join our verified partner network.
           </p>
         </div>
 
         <div className="flex flex-col gap-3 pt-2">
           <Link
-            href={isRestaurant ? '/partner/restaurant/apply' : '/partner/rider/apply'}
+            href={applyHref}
             className="w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition-colors shadow-md"
           >
-            {isRestaurant ? 'Apply as Restaurant Partner' : 'Apply as Delivery Rider'}
+            Apply as {title}
           </Link>
           <Link
             href="/partner"

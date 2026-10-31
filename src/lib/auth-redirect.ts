@@ -4,12 +4,16 @@ export interface PartnerStatusInfo {
   isAdmin: boolean;
   isVendorApproved: boolean;
   isRiderApproved: boolean;
+  isShopApproved: boolean;
   isVendorPending: boolean;
   isRiderPending: boolean;
+  isShopPending: boolean;
   isVendorRejected: boolean;
   isRiderRejected: boolean;
+  isShopRejected: boolean;
   isBlockedOrDeactivated: boolean;
   hasPartnerRole: boolean;
+  shopId?: string | null;
 }
 
 /**
@@ -21,10 +25,13 @@ export function resolvePartnerStatus(user: UserProfile | null): PartnerStatusInf
       isAdmin: false,
       isVendorApproved: false,
       isRiderApproved: false,
+      isShopApproved: false,
       isVendorPending: false,
       isRiderPending: false,
+      isShopPending: false,
       isVendorRejected: false,
       isRiderRejected: false,
+      isShopRejected: false,
       isBlockedOrDeactivated: false,
       hasPartnerRole: false,
     };
@@ -40,15 +47,18 @@ export function resolvePartnerStatus(user: UserProfile | null): PartnerStatusInf
       user.status === 'suspended'
   );
 
+  const isShopStore = Boolean(user.isShop || user.shopId || user.shopCategory);
+
   const isVendorApproved =
     !isBlockedOrDeactivated &&
+    !isShopStore &&
     (isAdmin ||
       ((roles.includes('vendor') || user.role === 'vendor') &&
         user.vendorApprovalStatus === 'approved') ||
       Boolean(user.restaurantId && user.vendorApprovalStatus === 'approved'));
 
-  const isVendorPending = !isBlockedOrDeactivated && user.vendorApprovalStatus === 'pending';
-  const isVendorRejected = !isBlockedOrDeactivated && user.vendorApprovalStatus === 'rejected';
+  const isVendorPending = !isBlockedOrDeactivated && !isShopStore && user.vendorApprovalStatus === 'pending';
+  const isVendorRejected = !isBlockedOrDeactivated && !isShopStore && user.vendorApprovalStatus === 'rejected';
 
   const isRiderApproved =
     !isBlockedOrDeactivated &&
@@ -59,18 +69,32 @@ export function resolvePartnerStatus(user: UserProfile | null): PartnerStatusInf
   const isRiderPending = !isBlockedOrDeactivated && user.riderApprovalStatus === 'pending';
   const isRiderRejected = !isBlockedOrDeactivated && user.riderApprovalStatus === 'rejected';
 
-  const hasPartnerRole = isVendorApproved || isRiderApproved;
+  const isShopApproved =
+    !isBlockedOrDeactivated &&
+    (isAdmin ||
+      ((roles.includes('shop') || user.role === 'shop') &&
+        (user.shopApprovalStatus === 'approved' || user.approvalStatus === 'approved')) ||
+      Boolean((user.shopId || user.isShop) && (user.shopApprovalStatus === 'approved' || user.approvalStatus === 'approved')));
+
+  const isShopPending = !isBlockedOrDeactivated && (user.shopApprovalStatus === 'pending' || (isShopStore && user.vendorApprovalStatus === 'pending'));
+  const isShopRejected = !isBlockedOrDeactivated && (user.shopApprovalStatus === 'rejected' || (isShopStore && user.vendorApprovalStatus === 'rejected'));
+
+  const hasPartnerRole = isVendorApproved || isRiderApproved || isShopApproved;
 
   return {
     isAdmin,
     isVendorApproved,
     isRiderApproved,
+    isShopApproved,
     isVendorPending,
     isRiderPending,
+    isShopPending,
     isVendorRejected,
     isRiderRejected,
+    isShopRejected,
     isBlockedOrDeactivated,
     hasPartnerRole,
+    shopId: user.shopId || (isShopStore ? user.restaurantId : null),
   };
 }
 
@@ -139,37 +163,63 @@ export function determinePostLoginRedirect(
       if (status.isRiderPending || status.isRiderRejected) {
         return safePath; // PartnerRouteGuard will display pending/rejected status screen
       }
+      if (status.isShopApproved) {
+        return '/partner/shop';
+      }
       if (status.isVendorApproved) {
         return '/partner/restaurant';
       }
       return '/';
     }
 
-    // 3. If requested destination is the central partner hub '/partner'
+    // 3. If requested destination is a shop partner route
+    if (safePath.startsWith('/partner/shop')) {
+      if (status.isShopApproved) {
+        return safePath;
+      }
+      if (status.isShopPending || status.isShopRejected) {
+        return safePath;
+      }
+      if (status.isVendorApproved) {
+        return '/partner/restaurant';
+      }
+      if (status.isRiderApproved) {
+        return '/partner/rider';
+      }
+      return '/';
+    }
+
+    // 4. If requested destination is the central partner hub '/partner'
     if (safePath === '/partner') {
       return '/partner';
     }
 
-    // 4. If requested destination is an authorized customer route (e.g. /checkout, /cart, /orders, /account, /catalog, etc.)
+    // 5. If requested destination is an authorized customer route (e.g. /checkout, /cart, /orders, /account, /catalog, etc.)
     return safePath;
   }
 
   // Case B: No explicit destination requested (default sign-in)
-  // 1. Both approved Restaurant and Rider
-  if (status.isVendorApproved && status.isRiderApproved) {
+  // Multiple approved partner roles
+  const approvedCount = [status.isVendorApproved, status.isRiderApproved, status.isShopApproved].filter(Boolean).length;
+  if (approvedCount > 1) {
     return '/partner';
   }
 
-  // 2. Approved Restaurant
+  // Approved Shop
+  if (status.isShopApproved) {
+    return '/partner/shop';
+  }
+
+  // Approved Restaurant
   if (status.isVendorApproved) {
     return '/partner/restaurant';
   }
 
-  // 3. Approved Rider
+  // Approved Rider
   if (status.isRiderApproved) {
     return '/partner/rider';
   }
 
-  // 4. Customer-only or pending/rejected with no approved partner role
+  // Customer-only or pending/rejected with no approved partner role
   return '/';
 }

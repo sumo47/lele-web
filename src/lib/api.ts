@@ -403,6 +403,8 @@ export async function apiCreateOrder(input: {
   customerName?: string;
   cookingInstructions?: string;
   couponCode?: string;
+  deliveryMethod?: 'rider' | 'self';
+  paymentMethod?: string;
 }): Promise<Order> {
   return fetchApi<Order>('/orders', {
     method: 'POST',
@@ -713,6 +715,231 @@ export async function apiUpdateRiderStatus(isOnline: boolean): Promise<RiderDuty
 export async function apiGetRiderProfile(): Promise<RiderProfile> {
   return fetchApi<RiderProfile>('/rider/profile');
 }
+
+// ==========================================
+// 4. GENERAL SHOP & E-COMMERCE PUBLIC APIS
+// ==========================================
+
+export async function apiGetShops(params: {
+  category?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+} = {}): Promise<{ data: any[]; pagination: any }> {
+  const qs = new URLSearchParams();
+  if (params.category) qs.set('category', params.category);
+  if (params.search) qs.set('search', params.search);
+  if (params.page) qs.set('page', String(params.page));
+  if (params.limit) qs.set('limit', String(params.limit));
+  const qStr = qs.toString() ? `?${qs.toString()}` : '';
+  return fetchApi<any>(`/shops${qStr}`);
+}
+
+export async function apiGetShopDetails(shopId: string): Promise<any> {
+  return fetchApi<any>(`/shops/${encodeURIComponent(shopId)}`);
+}
+
+export async function apiGetShopProducts(shopId: string, categorySlug?: string): Promise<any[]> {
+  const qStr = categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : '';
+  return fetchApi<any[]>(`/shops/${encodeURIComponent(shopId)}/products${qStr}`);
+}
+
+export async function apiGetShopProduct(shopId: string, productId: string): Promise<any> {
+  return fetchApi<any>(`/shops/${encodeURIComponent(shopId)}/products/${encodeURIComponent(productId)}`);
+}
+
+export async function apiGetShopCategoryTemplates(): Promise<any[]> {
+  return fetchApi<any[]>('/shops/categories/templates');
+}
+
+// ==========================================
+// 5. CUSTOMER 24-HOUR RETURNS APIS
+// ==========================================
+
+export async function apiCreateReturnRequest(orderId: string, payload: {
+  requestType: 'return' | 'exchange';
+  reason: string;
+  description?: string;
+  items: { variantId: string; productName: string; quantity: number }[];
+  images?: string[];
+}): Promise<any> {
+  return fetchApi<any>(`/customer/returns/orders/${encodeURIComponent(orderId)}`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiGetCustomerReturns(): Promise<any[]> {
+  return fetchApi<any[]>('/customer/returns');
+}
+
+// ==========================================
+// 6. SELLER SHOP PARTNER HUB APIS
+// ==========================================
+
+export async function apiApplyShopPartner(payload: {
+  name?: string;
+  shopName?: string;
+  categoryTemplateSlug?: string;
+  shopCategory?: string;
+  description?: string;
+  email?: string;
+  phone?: string;
+  address: string;
+  location?: string;
+  city?: string;
+  pincode?: string;
+  imageUrl?: string | null;
+  selfDeliveryEnabled?: boolean;
+  riderDeliveryEnabled?: boolean;
+  returnPolicyEnabled?: boolean;
+  returnWindowHours?: number;
+}): Promise<any> {
+  const body = {
+    name: payload.name || payload.shopName,
+    shopCategory: payload.shopCategory || payload.categoryTemplateSlug,
+    description: payload.description,
+    email: payload.email,
+    phone: payload.phone,
+    address: payload.address,
+    location: payload.location,
+    city: payload.city,
+    pincode: payload.pincode,
+    imageUrl: payload.imageUrl,
+    selfDeliveryEnabled: payload.selfDeliveryEnabled,
+    riderDeliveryEnabled: payload.riderDeliveryEnabled,
+    returnPolicyEnabled: payload.returnPolicyEnabled,
+    returnWindowHours: payload.returnWindowHours,
+  };
+  return fetchApi<any>('/partner/shops/apply', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiGetMyShopProfile(): Promise<any> {
+  return fetchApi<any>('/partner/shops/me');
+}
+
+export async function apiUpdateMyShopProfile(payload: any): Promise<any> {
+  return fetchApi<any>('/partner/shops/me', {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiGetMyCustomCategories(): Promise<any[]> {
+  return fetchApi<any[]>('/partner/shops/me/custom-categories');
+}
+
+export async function apiCreateCustomCategory(payload: {
+  name: string;
+  description?: string;
+  displayOrder?: number;
+}): Promise<any> {
+  return fetchApi<any>('/partner/shops/me/custom-categories', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiUpdateCustomCategory(id: string, payload: any): Promise<any> {
+  return fetchApi<any>(`/partner/shops/me/custom-categories/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiDeleteCustomCategory(id: string): Promise<any> {
+  return fetchApi<any>(`/partner/shops/me/custom-categories/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function apiGetMyProducts(query?: any): Promise<any> {
+  return fetchApi<any>('/partner/shops/me/products');
+}
+
+export async function apiGetMyProduct(id: string): Promise<any> {
+  return fetchApi<any>(`/partner/shops/me/products/${encodeURIComponent(id)}`);
+}
+
+export async function apiCreateProduct(payload: any): Promise<any> {
+  return fetchApi<any>('/partner/shops/me/products', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiUpdateProduct(id: string, payload: any): Promise<any> {
+  return fetchApi<any>(`/partner/shops/me/products/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function apiDeleteProduct(id: string): Promise<any> {
+  return fetchApi<any>(`/partner/shops/me/products/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function apiAdjustInventory(
+  variantIdOrPayload: string | { variantId: string; newQuantity: number; reason: string; notes?: string },
+  payloadArg?: { newQuantity: number; reason: string; notes?: string }
+): Promise<any> {
+  const body =
+    typeof variantIdOrPayload === 'string'
+      ? { variantId: variantIdOrPayload, ...payloadArg }
+      : variantIdOrPayload;
+  return fetchApi<any>('/partner/shops/me/inventory/adjust', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+export async function apiGetInventoryLogs(params?: string | { variantId?: string; limit?: number }): Promise<any[]> {
+  const variantId = typeof params === 'string' ? params : params?.variantId;
+  const qStr = variantId ? `?variantId=${encodeURIComponent(variantId)}` : '';
+  return fetchApi<any[]>(`/partner/shops/me/inventory/logs${qStr}`);
+}
+
+export async function apiGetMyShopOrders(params?: string | { status?: string; limit?: number }): Promise<any> {
+  const status = typeof params === 'string' ? params : params?.status;
+  const qStr = status ? `?status=${encodeURIComponent(status)}` : '';
+  return fetchApi<any>(`/partner/shops/me/orders${qStr}`);
+}
+
+export async function apiUpdateSelfDeliveryStatus(orderId: string, status: 'dispatched' | 'delivered'): Promise<any> {
+  return fetchApi<any>(`/partner/shops/me/orders/${encodeURIComponent(orderId)}/self-delivery`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function apiGetMyShopReturns(params?: any): Promise<any[]> {
+  return fetchApi<any[]>('/partner/shops/me/returns');
+}
+
+export async function apiReviewShopReturn(id: string, payload: {
+  status: 'approved' | 'rejected' | 'completed';
+  rejectionReason?: string;
+  sellerNotes?: string;
+  restockItems?: boolean;
+  restockVariant?: boolean;
+}): Promise<any> {
+  const body = {
+    status: payload.status,
+    rejectionReason: payload.rejectionReason,
+    sellerNotes: payload.sellerNotes,
+    restockItems: payload.restockItems ?? payload.restockVariant,
+  };
+  return fetchApi<any>(`/partner/shops/me/returns/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
 
 
 

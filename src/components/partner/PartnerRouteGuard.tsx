@@ -13,7 +13,7 @@ import {
 } from './PartnerStatusScreens';
 
 interface PartnerRouteGuardProps {
-  role: 'vendor' | 'rider';
+  role: 'vendor' | 'rider' | 'shop';
   children: React.ReactNode;
 }
 
@@ -25,10 +25,13 @@ export function PartnerRouteGuard({ role, children }: PartnerRouteGuardProps) {
     isAuthenticated,
     isVendorApproved,
     isRiderApproved,
+    isShopApproved,
     isVendorPending,
     isRiderPending,
+    isShopPending,
     isVendorRejected,
     isRiderRejected,
+    isShopRejected,
   } = useAuth();
 
   if (loading) {
@@ -124,6 +127,25 @@ export function PartnerRouteGuard({ role, children }: PartnerRouteGuardProps) {
       );
     }
     return <PartnerUnauthorizedScreen type="rider" />;
+  }
+
+  // Shop Partner Checks
+  if (role === 'shop') {
+    if (isShopApproved) {
+      return <>{children}</>;
+    }
+    if (isShopPending) {
+      return <PartnerPendingScreen type="shop" />;
+    }
+    if (isShopRejected) {
+      return (
+        <PartnerRejectedScreen
+          type="shop"
+          reason={(user as any).blockReason || (user as any).block_reason}
+        />
+      );
+    }
+    return <PartnerUnauthorizedScreen type="shop" />;
   }
 
   return <>{children}</>;

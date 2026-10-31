@@ -20,11 +20,15 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isVendorApproved: boolean;
   isRiderApproved: boolean;
+  isShopApproved: boolean;
   isVendorPending: boolean;
   isRiderPending: boolean;
+  isShopPending: boolean;
   isVendorRejected: boolean;
   isRiderRejected: boolean;
+  isShopRejected: boolean;
   hasPartnerRole: boolean;
+  shopId?: string | null;
   login: (credentials: { email: string; password: string }) => Promise<UserProfile | null>;
   loginWithGoogle: (idToken: string) => Promise<UserProfile | null>;
   signup: (data: {
@@ -126,11 +130,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: Boolean(user),
         isVendorApproved: partnerStatus.isVendorApproved,
         isRiderApproved: partnerStatus.isRiderApproved,
+        isShopApproved: partnerStatus.isShopApproved,
         isVendorPending: partnerStatus.isVendorPending,
         isRiderPending: partnerStatus.isRiderPending,
+        isShopPending: partnerStatus.isShopPending,
         isVendorRejected: partnerStatus.isVendorRejected,
         isRiderRejected: partnerStatus.isRiderRejected,
+        isShopRejected: partnerStatus.isShopRejected,
         hasPartnerRole: partnerStatus.hasPartnerRole,
+        shopId: partnerStatus.shopId,
         login,
         loginWithGoogle,
         signup,

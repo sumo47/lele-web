@@ -112,6 +112,12 @@ export interface UserProfile {
   blockReason?: string;
   restaurantId?: string | null;
   restaurantName?: string | null;
+  isShop?: boolean;
+  shopId?: string | null;
+  shopName?: string | null;
+  shopCategory?: string | null;
+  shopApprovalStatus?: 'none' | 'pending' | 'approved' | 'rejected' | string | null;
+  shopStatus?: string | null;
   vendorApprovalStatus?: 'none' | 'pending' | 'approved' | 'rejected' | string | null;
   riderApprovalStatus?: 'none' | 'pending' | 'approved' | 'rejected' | string | null;
   riderIsOnline?: boolean;
@@ -151,17 +157,24 @@ export interface CustomerAddress {
 }
 
 export interface OrderItem {
+  id?: string;
   itemId?: string;
   name: string;
+  variantTitle?: string;
   price: number;
   quantity: number;
+  subtotal?: number;
   imageUrl?: string;
   isVeg?: boolean;
 }
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   status: 'ordered' | 'preparing' | 'ready' | 'dispatched' | 'delivered' | 'cancelled' | string;
+  deliveryAddress?: string;
+  totalAmount?: number;
+  createdAt?: string;
   restaurant: {
     id: string;
     name: string;
@@ -205,6 +218,134 @@ export interface Order {
     cancelledBy?: string;
     cancelReason?: string;
   };
+  orderType?: 'food' | 'shop' | string;
+  deliveryMethod?: 'rider' | 'self' | string;
+  sellerDeliveryStatus?: 'pending' | 'dispatched' | 'delivered' | string | null;
+  sellerDeliveredAt?: string | null;
+  deliveredAt?: string | null;
+  returnStatus?: 'none' | 'pending' | 'approved' | 'rejected' | 'completed' | string;
+}
+
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  shopId: string;
+  sku: string;
+  title: string;
+  attributes: Record<string, string>;
+  price: number;
+  listingPrice?: number | null;
+  stockQuantity: number;
+  lowStockThreshold?: number;
+  imageUrl?: string | null;
+  isActive: boolean;
+}
+
+export interface InventoryLog {
+  id: string;
+  variantId: string;
+  variantTitle?: string;
+  sku?: string;
+  previousQuantity: number;
+  newQuantity: number;
+  changeAmount: number;
+  reason: string;
+  orderId?: string | null;
+  orderNumber?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface ShopProduct {
+  id: string;
+  shopId: string;
+  name: string;
+  slug: string;
+  description?: string;
+  categoryTemplateId?: string;
+  categoryTemplateSlug?: string;
+  categoryTemplateName?: string;
+  customCategoryId?: string | null;
+  customCategoryName?: string | null;
+  brand?: string | null;
+  basePrice: number;
+  listingPrice?: number | null;
+  hasVariants: boolean;
+  images: string[];
+  imageUrl?: string | null;
+  attributes: Record<string, string>;
+  totalStock: number;
+  isActive: boolean;
+  variants: ProductVariant[];
+  createdAt?: string;
+}
+
+export interface ShopCustomCategory {
+  id: string;
+  shopId: string;
+  name: string;
+  slug: string;
+  description?: string;
+  displayOrder?: number;
+  isActive: boolean;
+}
+
+export interface CategoryTemplate {
+  id: string;
+  name: string;
+  slug?: string;
+  categorySlug: string;
+  description?: string;
+  suggestedAttributes: any[];
+  suggestedVariantDimensions?: any[];
+  suggestedVariants?: string[];
+  isActive: boolean;
+}
+
+export interface ReturnRequest {
+  id: string;
+  orderId: string;
+  orderNumber?: string;
+  shopId: string;
+  shopName?: string;
+  userId: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerNotes?: string;
+  requestType: 'return' | 'exchange';
+  type?: 'return' | 'exchange';
+  reason: string;
+  description?: string;
+  status: 'pending' | 'requested' | 'approved' | 'rejected' | 'completed' | string;
+  items: { variantId: string; productName: string; quantity: number }[];
+  images?: string[];
+  rejectionReason?: string | null;
+  sellerNotes?: string | null;
+  createdAt: string;
+}
+
+export interface ShopProfile {
+  id: string;
+  ownerId: string;
+  name: string;
+  slug: string;
+  description?: string;
+  shopCategory: string;
+  categoryTemplateName?: string;
+  email: string;
+  phone: string;
+  address: string;
+  location?: string;
+  imageUrl?: string | null;
+  isOpen: boolean;
+  isOnline: boolean;
+  approvalStatus: string;
+  selfDeliveryEnabled: boolean;
+  riderDeliveryEnabled: boolean;
+  returnPolicyEnabled: boolean;
+  returnWindowHours: number;
+  rating?: number;
+  totalRatings?: number;
 }
 
 export interface PublicStoreConfig {
@@ -306,6 +447,12 @@ export interface VendorOrder {
     cancelledBy?: string;
     cancelReason?: string;
   };
+  orderType?: 'food' | 'shop' | string;
+  deliveryMethod?: 'rider' | 'self' | string;
+  sellerDeliveryStatus?: 'pending' | 'dispatched' | 'delivered' | string | null;
+  sellerDeliveredAt?: string | null;
+  deliveredAt?: string | null;
+  returnStatus?: 'none' | 'pending' | 'approved' | 'rejected' | 'completed' | string;
 }
 
 export interface VendorOutlet {

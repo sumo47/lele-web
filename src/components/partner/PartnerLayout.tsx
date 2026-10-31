@@ -26,7 +26,7 @@ import { useAuth } from '@/context/AuthContext';
 import UserAvatar from '@/components/ui/UserAvatar';
 
 interface PartnerLayoutProps {
-  role: 'restaurant' | 'rider';
+  role: 'restaurant' | 'rider' | 'shop';
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
@@ -42,10 +42,51 @@ export function PartnerLayout({
 }: PartnerLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout, isVendorApproved, isRiderApproved } = useAuth();
+  const { user, logout, isVendorApproved, isRiderApproved, isShopApproved } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const isRestaurant = role === 'restaurant';
+  const isShop = role === 'shop';
+  const isRider = role === 'rider';
+
+  const shopNavItems = [
+    {
+      label: 'Overview',
+      href: '/partner/shop',
+      icon: LayoutDashboard,
+      exact: true,
+    },
+    {
+      label: 'Products & Variants',
+      href: '/partner/shop/products',
+      icon: ShoppingBag,
+    },
+    {
+      label: 'Inventory & Stock',
+      href: '/partner/shop/inventory',
+      icon: BarChart3,
+    },
+    {
+      label: 'Custom Categories',
+      href: '/partner/shop/categories',
+      icon: Store,
+    },
+    {
+      label: 'Shop Orders',
+      href: '/partner/shop/orders',
+      icon: Clock,
+    },
+    {
+      label: 'Returns & Exchanges',
+      href: '/partner/shop/returns',
+      icon: ArrowLeftRight,
+    },
+    {
+      label: 'Store Settings',
+      href: '/partner/shop/profile',
+      icon: User,
+    },
+  ];
 
   const restaurantNavItems = [
     {
@@ -105,7 +146,13 @@ export function PartnerLayout({
     },
   ];
 
-  const navItems = isRestaurant ? restaurantNavItems : riderNavItems;
+  const navItems = isShop ? shopNavItems : isRestaurant ? restaurantNavItems : riderNavItems;
+
+  const getPartnerColorClass = () => {
+    if (isShop) return 'purple';
+    if (isRestaurant) return 'red';
+    return 'emerald';
+  };
 
   const isActive = (item: typeof navItems[0]) => {
     if (item.exact) {
@@ -131,12 +178,12 @@ export function PartnerLayout({
           >
             <Menu className="w-5 h-5" />
           </button>
-          <Link href={isRestaurant ? '/partner/restaurant' : '/partner/rider'} className="flex items-center gap-2">
-            <div className="relative w-7 h-7 rounded-lg overflow-hidden border border-red-500/20">
+          <Link href={isShop ? '/partner/shop' : isRestaurant ? '/partner/restaurant' : '/partner/rider'} className="flex items-center gap-2">
+            <div className={`relative w-7 h-7 rounded-lg overflow-hidden border ${isShop ? 'border-purple-500/20' : 'border-red-500/20'}`}>
               <Image src="/lele_logo.jpeg" alt="LELE" fill className="object-cover" />
             </div>
             <span className="font-extrabold text-base tracking-tight text-gray-900">
-              LELE <span className="text-red-600">{isRestaurant ? 'Kitchen' : 'Rider'}</span>
+              LELE <span className={isShop ? 'text-purple-600' : isRestaurant ? 'text-red-600' : 'text-emerald-600'}>{isShop ? 'Shop' : isRestaurant ? 'Kitchen' : 'Rider'}</span>
             </span>
           </Link>
         </div>
@@ -157,16 +204,16 @@ export function PartnerLayout({
       <aside className="hidden md:flex flex-col w-64 lg:w-72 bg-white border-r border-gray-200 shrink-0 sticky top-0 h-screen select-none">
         {/* Brand Header */}
         <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-          <Link href={isRestaurant ? '/partner/restaurant' : '/partner/rider'} className="flex items-center gap-3 group">
-            <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-red-500/20 shadow-xs group-hover:scale-105 transition-transform">
+          <Link href={isShop ? '/partner/shop' : isRestaurant ? '/partner/restaurant' : '/partner/rider'} className="flex items-center gap-3 group">
+            <div className={`relative w-9 h-9 rounded-xl overflow-hidden border ${isShop ? 'border-purple-500/20' : 'border-red-500/20'} shadow-xs group-hover:scale-105 transition-transform`}>
               <Image src="/lele_logo.jpeg" alt="LELE Logo" fill className="object-cover" />
             </div>
             <div>
               <div className="font-extrabold text-lg tracking-tight text-gray-900 leading-none">
-                LELE <span className="text-red-600">Partner</span>
+                LELE <span className={isShop ? 'text-purple-600' : 'text-red-600'}>{isShop ? 'Shop' : 'Partner'}</span>
               </div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 mt-1">
-                {isRestaurant ? 'Kitchen Console' : 'Rider Operations'}
+                {isShop ? 'Commerce Hub' : isRestaurant ? 'Kitchen Console' : 'Rider Operations'}
               </div>
             </div>
           </Link>
@@ -181,13 +228,17 @@ export function PartnerLayout({
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span
                   className={`inline-block w-2 h-2 rounded-full ${
-                    isRestaurant
+                    isShop
+                      ? 'bg-purple-500 ring-2 ring-purple-100'
+                      : isRestaurant
                       ? 'bg-amber-500 ring-2 ring-amber-100'
                       : 'bg-emerald-500 ring-2 ring-emerald-100'
                   }`}
                 />
                 <span className="text-xs text-gray-500 truncate capitalize font-medium">
-                  {isRestaurant
+                  {isShop
+                    ? user?.shopName || 'Approved Shop Seller'
+                    : isRestaurant
                     ? user?.restaurantName || 'Approved Restaurant'
                     : 'Verified Rider'}
                 </span>
@@ -207,7 +258,9 @@ export function PartnerLayout({
                 href={item.href}
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   active
-                    ? isRestaurant
+                    ? isShop
+                      ? 'bg-purple-50 text-purple-700 shadow-xs'
+                      : isRestaurant
                       ? 'bg-red-50 text-red-700 shadow-xs'
                       : 'bg-emerald-50 text-emerald-700 shadow-xs'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/70'
@@ -217,7 +270,9 @@ export function PartnerLayout({
                   <Icon
                     className={`w-4 h-4 ${
                       active
-                        ? isRestaurant
+                        ? isShop
+                          ? 'text-purple-600'
+                          : isRestaurant
                           ? 'text-red-600'
                           : 'text-emerald-600'
                         : 'text-gray-400'
@@ -228,7 +283,11 @@ export function PartnerLayout({
                 {active && (
                   <ChevronRight
                     className={`w-3.5 h-3.5 ${
-                      isRestaurant ? 'text-red-500' : 'text-emerald-500'
+                      isShop
+                        ? 'text-purple-500'
+                        : isRestaurant
+                        ? 'text-red-500'
+                        : 'text-emerald-500'
                     }`}
                   />
                 )}
@@ -296,11 +355,11 @@ export function PartnerLayout({
       >
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="relative w-8 h-8 rounded-lg overflow-hidden border border-red-500/20">
+            <div className={`relative w-8 h-8 rounded-lg overflow-hidden border ${isShop ? 'border-purple-500/20' : 'border-red-500/20'}`}>
               <Image src="/lele_logo.jpeg" alt="LELE" fill className="object-cover" />
             </div>
             <span className="font-extrabold text-base tracking-tight text-gray-900">
-              LELE {isRestaurant ? 'Kitchen' : 'Rider'}
+              LELE {isShop ? 'Shop' : isRestaurant ? 'Kitchen' : 'Rider'}
             </span>
           </div>
           <button
@@ -322,7 +381,9 @@ export function PartnerLayout({
                 onClick={() => setMobileSidebarOpen(false)}
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                   active
-                    ? isRestaurant
+                    ? isShop
+                      ? 'bg-purple-50 text-purple-700'
+                      : isRestaurant
                       ? 'bg-red-50 text-red-700'
                       : 'bg-emerald-50 text-emerald-700'
                     : 'text-gray-600 hover:bg-gray-50'
@@ -332,7 +393,9 @@ export function PartnerLayout({
                   <Icon
                     className={`w-4 h-4 ${
                       active
-                        ? isRestaurant
+                        ? isShop
+                          ? 'text-purple-600'
+                          : isRestaurant
                           ? 'text-red-600'
                           : 'text-emerald-600'
                         : 'text-gray-400'

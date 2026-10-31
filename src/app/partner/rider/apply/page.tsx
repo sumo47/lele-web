@@ -16,6 +16,7 @@ import {
   Lock,
   Clock,
   Store,
+  ShoppingBag,
 } from 'lucide-react';
 
 export default function BecomeRiderPage() {
@@ -28,6 +29,8 @@ export default function BecomeRiderPage() {
     isVendorPending,
     isRiderApproved,
     isRiderPending,
+    isShopApproved,
+    isShopPending,
   } = useAuth();
 
   const [configLoading, setConfigLoading] = useState(true);
@@ -220,6 +223,30 @@ export default function BecomeRiderPage() {
               className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition shadow-md"
             >
               <span>Go to Restaurant Console</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isShopApproved || isShopPending) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-20 px-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-gray-100 p-8 text-center space-y-4">
+          <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
+            <ShoppingBag className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-black text-gray-900 tracking-tight">Shop Partner Active</h2>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            Your account is associated with a Shop seller account or has a pending shop application. Per LELE single-partner policy, an account can only be one partner type (Rider, Restaurant, or Shop).
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/partner/shop"
+              className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold transition shadow-md"
+            >
+              <span>Go to Shop Console</span>
             </Link>
           </div>
         </div>

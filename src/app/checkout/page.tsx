@@ -171,6 +171,7 @@ export default function CheckoutPage() {
         customerPhone: customerPhone || '+918757962224',
         cookingInstructions: cookingInstructions.trim(),
         couponCode: appliedCoupon?.code,
+        paymentMethod: 'COD',
       });
 
       // Clear cart

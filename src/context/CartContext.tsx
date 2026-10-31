@@ -21,7 +21,10 @@ interface CartContextType {
   isCartOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addToCart: (item: MenuItem, restName?: string) => Promise<void>;
+  addToCart: (
+    item: MenuItem | { id: string; restaurantId: string; name: string; price: number; imageUrl?: string | null; isVeg?: boolean },
+    restName?: string
+  ) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -217,7 +220,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const closeCart = () => setIsCartOpen(false);
 
   // Add Item
-  const addToCart = async (item: MenuItem, restName?: string) => {
+  const addToCart = async (
+    item: MenuItem | { id: string; restaurantId: string; name: string; price: number; imageUrl?: string | null; isVeg?: boolean },
+    restName?: string
+  ) => {
     // If cart has items from another restaurant, reset cart with new restaurant
     let currentItems = [...items];
     if (restaurantId && restaurantId !== item.restaurantId && currentItems.length > 0) {
@@ -235,7 +241,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         price: item.price,
         quantity: 1,
         imageUrl: item.imageUrl || '',
-        isVeg: item.isVeg,
+        isVeg: item.isVeg ?? true,
         restaurantId: item.restaurantId,
       });
     }

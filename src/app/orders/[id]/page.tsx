@@ -15,7 +15,11 @@ import {
   ShieldAlert,
   RotateCcw,
 } from 'lucide-react';
-import { apiGetOrderById, apiCancelOrder } from '@/lib/api';
+import {
+  apiGetOrderById,
+  apiCancelOrder,
+  apiCreateReturnRequest,
+} from '@/lib/api';
 import type { Order } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 
@@ -34,6 +38,14 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const [cancelReason, setCancelReason] = useState('Change of plan / Placed by mistake');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Return & Exchange State
+  const [showReturnModal, setShowReturnModal] = useState(false);
+  const [returnType, setReturnType] = useState<'return' | 'exchange'>('return');
+  const [returnReason, setReturnReason] = useState('size_issue');
+  const [returnDescription, setReturnDescription] = useState('');
+  const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [returnSuccessMsg, setReturnSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadOrder() {
@@ -72,6 +84,35 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
     }
   };
 
+  const handleReturnSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!order) return;
+    setSubmittingReturn(true);
+    setErrorMsg(null);
+    try {
+      const itemsToReturn = (order.items || []).map((it) => ({
+        variantId: it.itemId || it.id || '',
+        productName: it.name,
+        quantity: it.quantity,
+      }));
+
+      await apiCreateReturnRequest(order.id, {
+        requestType: returnType,
+        reason: returnReason,
+        description: returnDescription.trim() || undefined,
+        items: itemsToReturn,
+      });
+
+      setOrder((prev) => (prev ? { ...prev, returnStatus: 'pending' } : null));
+      setReturnSuccessMsg('Your return request has been submitted for seller review!');
+      setShowReturnModal(false);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to submit return request.');
+    } finally {
+      setSubmittingReturn(false);
+    }
+  };
+
   // Status Stepper Steps
   const steps = [
     { key: 'ordered', label: 'Order Placed', desc: 'Received by kitchen' },
@@ -101,6 +142,22 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
   const isCancelled = order?.status?.toLowerCase() === 'cancelled';
   const currentStep = order ? getStepIndex(order.status) : 0;
   const canCancel = order && ['ordered', 'preparing'].includes(order.status.toLowerCase());
+
+  const isShopOrder = order?.orderType === 'shop';
+  const isDelivered =
+    order?.status?.toLowerCase() === 'delivered' ||
+    order?.sellerDeliveryStatus === 'delivered';
+  const deliveredAt =
+    order?.sellerDeliveredAt ||
+    order?.deliveredAt ||
+    order?.timestamps?.deliveredAt;
+  const isWithin24Hours =
+    isDelivered &&
+    (deliveredAt
+      ? Date.now() - new Date(deliveredAt).getTime() <= 24 * 60 * 60 * 1000
+      : true);
+  const hasActiveReturn =
+    order?.returnStatus && order?.returnStatus !== 'none';
 
   if (loading) {
     return (
@@ -154,10 +211,26 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
               <span className="text-xs text-gray-500">
                 {order.timestamps?.createdAt ? new Date(order.timestamps.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : ''}
               </span>
+              {isShopOrder && (
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">
+                  Shop Order
+                </span>
+              )}
+              {order.deliveryMethod === 'self' && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">
+                  Self-Delivery: {order.sellerDeliveryStatus?.toUpperCase() || 'PENDING'}
+                </span>
+              )}
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-gray-900 mt-1">
-              {order.restaurant?.name || 'Restaurant Order'}
+              {order.restaurant?.name || (isShopOrder ? 'Shop Order' : 'Restaurant Order')}
             </h1>
+            {hasActiveReturn && (
+              <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-50 text-purple-800 text-xs font-bold border border-purple-200">
+                <RotateCcw className="w-3.5 h-3.5 text-purple-600" />
+                <span>Return Status: {order.returnStatus?.toUpperCase()}</span>
+              </div>
+            )}
           </div>
 
           {/* Delivery PIN badge */}
@@ -312,9 +385,145 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
               </button>
             </div>
           )}
+
+          {/* 24-Hour Return / Exchange Workflow */}
+          {isDelivered && (
+            <div className="pt-4 border-t border-gray-100 space-y-2">
+              {hasActiveReturn ? (
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded-2xl text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-purple-900">
+                    <RotateCcw className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Return / Exchange Status: {order.returnStatus?.toUpperCase()}</span>
+                  </div>
+                  <p className="text-[11px] text-purple-700">
+                    Your request has been registered and is being reviewed by the merchant.
+                  </p>
+                </div>
+              ) : isWithin24Hours ? (
+                <div>
+                  <button
+                    onClick={() => setShowReturnModal(true)}
+                    className="w-full flex items-center justify-center gap-2 text-xs font-bold text-purple-700 hover:text-purple-800 py-2.5 bg-purple-50 hover:bg-purple-100 rounded-xl transition border border-purple-200"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Request 24-Hour Return or Exchange</span>
+                  </button>
+                  <p className="text-[10px] text-gray-400 text-center mt-1">
+                    Guaranteed within 24 hours of delivery
+                  </p>
+                </div>
+              ) : (
+                <div className="text-[11px] text-gray-400 text-center py-1">
+                  24-Hour Return Window Expired
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>
+
+      {returnSuccessMsg && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          <span>{returnSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* Return Request Modal */}
+      {showReturnModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-gray-100">
+            <div>
+              <h3 className="text-base font-extrabold text-gray-900">
+                Request Return or Exchange
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Order #{order.id.slice(0, 10)} • 24-Hour Policy Window Active
+              </p>
+            </div>
+
+            <form onSubmit={handleReturnSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Request Type <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setReturnType('return')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                      returnType === 'return'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    Return &amp; Refund
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setReturnType('exchange')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition ${
+                      returnType === 'exchange'
+                        ? 'border-purple-600 bg-purple-50 text-purple-700'
+                        : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    Size / Variant Exchange
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Reason <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 font-medium"
+                >
+                  <option value="size_issue">Size does not fit / Need size exchange</option>
+                  <option value="wrong_item">Received wrong item or variant</option>
+                  <option value="defective">Defective or damaged product</option>
+                  <option value="not_as_described">Item not as described</option>
+                  <option value="other">Other reason</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-1">
+                  Details / Customer Note
+                </label>
+                <textarea
+                  rows={2}
+                  value={returnDescription}
+                  onChange={(e) => setReturnDescription(e.target.value)}
+                  placeholder="Describe the issue or desired replacement size..."
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowReturnModal(false)}
+                  className="flex-1 bg-gray-100 text-gray-700 text-xs font-bold py-2.5 rounded-xl hover:bg-gray-200 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingReturn}
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold py-2.5 rounded-xl disabled:opacity-50 transition shadow-md shadow-purple-600/20"
+                >
+                  {submittingReturn ? 'Submitting...' : 'Submit Request'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Cancel Modal */}
       {showCancelModal && (

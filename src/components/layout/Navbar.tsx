@@ -17,6 +17,7 @@ import {
   Home,
   Compass,
   ChevronDown,
+  ShoppingBag,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
@@ -33,8 +34,10 @@ export default function Navbar() {
     logout,
     isVendorApproved,
     isRiderApproved,
+    isShopApproved,
     isVendorPending,
     isRiderPending,
+    isShopPending,
     isVendorRejected,
     isRiderRejected,
   } = useAuth();
@@ -99,6 +102,14 @@ export default function Navbar() {
                 <span className="opacity-40">|</span>
               </>
             )}
+            {isShopApproved && (
+              <>
+                <Link href="/partner/shop" className="hover:text-white transition font-semibold text-purple-200">
+                  🛍️ Shop Console
+                </Link>
+                <span className="opacity-40">|</span>
+              </>
+            )}
             {isVendorPending && (
               <>
                 <Link href="/partner/restaurant" className="hover:text-white transition font-semibold text-yellow-300">
@@ -115,8 +126,20 @@ export default function Navbar() {
                 <span className="opacity-40">|</span>
               </>
             )}
-            {!isVendorApproved && !isVendorPending && !isRiderApproved && !isRiderPending && onboardingEnabled && (
+            {isShopPending && (
               <>
+                <Link href="/partner/shop" className="hover:text-white transition font-semibold text-yellow-300">
+                  ⏳ Shop Review Pending
+                </Link>
+                <span className="opacity-40">|</span>
+              </>
+            )}
+            {!isVendorApproved && !isVendorPending && !isRiderApproved && !isRiderPending && !isShopApproved && !isShopPending && onboardingEnabled && (
+              <>
+                <Link href="/partner/shop/apply" className="hover:text-white transition font-semibold text-purple-200">
+                  🛍️ Open a Shop
+                </Link>
+                <span className="opacity-40">|</span>
                 <Link href="/partner/rider/apply" className="hover:text-white transition font-semibold text-yellow-300">
                   🛵 Become a Rider
                 </Link>
@@ -191,6 +214,10 @@ export default function Navbar() {
               <Link href="/catalog" className="hover:text-red-600 transition flex items-center gap-1">
                 <Compass className="w-4 h-4" />
                 Explore
+              </Link>
+              <Link href="/shops" className="hover:text-purple-600 transition flex items-center gap-1">
+                <ShoppingBag className="w-4 h-4 text-purple-600" />
+                <span className="font-bold text-gray-900 hover:text-purple-600">Shops</span>
               </Link>
               <Link href="/orders" className="hover:text-red-600 transition flex items-center gap-1">
                 <Package className="w-4 h-4" />
@@ -454,6 +481,14 @@ export default function Navbar() {
                 Explore All Food & Restaurants
               </Link>
               <Link
+                href="/shops"
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 hover:bg-gray-50 rounded-lg flex items-center gap-3 font-bold text-purple-900"
+              >
+                <ShoppingBag className="w-5 h-5 text-purple-600" />
+                Hyperlocal Shops & Stores
+              </Link>
+              <Link
                 href="/orders"
                 onClick={() => setMobileMenuOpen(false)}
                 className="p-2 hover:bg-gray-50 rounded-lg flex items-center gap-3"
@@ -479,6 +514,15 @@ export default function Navbar() {
               </Link>
               <div className="pt-2 border-t border-gray-100 flex flex-col gap-1">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400 px-2">Partner with LELE</span>
+                {isShopApproved && (
+                  <Link
+                    href="/partner/shop"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 text-xs font-bold text-purple-700 bg-purple-50/60 hover:bg-purple-100 rounded-lg flex items-center gap-2"
+                  >
+                    🛍️ Shop Dashboard
+                  </Link>
+                )}
                 {isVendorApproved && (
                   <Link
                     href="/partner/restaurant"
@@ -495,6 +539,15 @@ export default function Navbar() {
                     className="p-2 text-xs font-bold text-emerald-700 bg-emerald-50/60 hover:bg-emerald-100 rounded-lg flex items-center gap-2"
                   >
                     🛵 Rider Dashboard
+                  </Link>
+                )}
+                {isShopPending && (
+                  <Link
+                    href="/partner/shop"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 text-xs font-semibold text-purple-600 bg-purple-50/40 hover:bg-purple-100 rounded-lg flex items-center gap-2"
+                  >
+                    ⏳ Shop Review Pending
                   </Link>
                 )}
                 {isVendorPending && (
@@ -515,8 +568,15 @@ export default function Navbar() {
                     ⏳ Rider Review Pending
                   </Link>
                 )}
-                {!isVendorApproved && !isVendorPending && !isRiderApproved && !isRiderPending && onboardingEnabled && (
+                {!isVendorApproved && !isVendorPending && !isRiderApproved && !isRiderPending && !isShopApproved && !isShopPending && onboardingEnabled && (
                   <>
+                    <Link
+                      href="/partner/shop/apply"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="p-2 text-xs font-semibold text-purple-600 hover:bg-purple-50 rounded-lg flex items-center gap-2"
+                    >
+                      🛍️ Open a Shop
+                    </Link>
                     <Link
                       href="/partner/rider/apply"
                       onClick={() => setMobileMenuOpen(false)}
