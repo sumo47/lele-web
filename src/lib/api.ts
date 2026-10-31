@@ -559,7 +559,23 @@ export async function apiGetVendorCategories(restaurantId?: string): Promise<Ven
   const query = new URLSearchParams();
   if (restaurantId) query.set('restaurantId', restaurantId);
   const res = await fetchApi<any>(`/vendor/catalog/categories?${query.toString()}`);
-  return Array.isArray(res) ? res : res?.data || [];
+  if (Array.isArray(res)) return res;
+  if (Array.isArray(res?.systemCategories) && res.systemCategories.length > 0) {
+    return res.systemCategories.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug || c.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    }));
+  }
+  if (Array.isArray(res?.categories) && res.categories.length > 0) {
+    return res.categories.map((catName: string) => ({
+      id: String(catName).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      name: String(catName),
+      slug: String(catName).toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    }));
+  }
+  if (Array.isArray(res?.data)) return res.data;
+  return [];
 }
 
 export async function apiCreateVendorCatalogItem(

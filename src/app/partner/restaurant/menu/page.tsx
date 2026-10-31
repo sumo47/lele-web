@@ -98,7 +98,12 @@ function RestaurantMenuContent() {
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
       // Category filter
-      if (selectedCategory !== 'all' && item.categoryId !== selectedCategory) {
+      if (
+        selectedCategory !== 'all' &&
+        item.categoryId !== selectedCategory &&
+        item.categoryName !== selectedCategory &&
+        (item as any).category !== selectedCategory
+      ) {
         return false;
       }
       // Diet filter
@@ -138,7 +143,12 @@ function RestaurantMenuContent() {
     setFormDescription(item.description || '');
     setFormPrice(String(item.price));
     setFormListingPrice(item.listingPrice ? String(item.listingPrice) : '');
-    setFormCategoryId(item.categoryId || categories[0]?.id || '');
+    const matchedCat = categories.find(
+      (c) =>
+        c.id === item.categoryId ||
+        c.name.toLowerCase() === (item.categoryName || (item as any).category || '').toLowerCase()
+    );
+    setFormCategoryId(matchedCat?.id || item.categoryId || categories[0]?.id || '');
     setFormIsVeg(item.isVeg);
     setFormInStock(item.inStock !== false);
     setFormImageUrl(item.imageUrl || '');
@@ -177,11 +187,17 @@ function RestaurantMenuContent() {
     setSavingItem(true);
     setToastMsg(null);
 
+    const selectedCategoryObj = categories.find((c) => c.id === formCategoryId);
+    const categoryName = selectedCategoryObj?.name || (formCategoryId ? formCategoryId : 'Main Course');
+
     const payload = {
       name: formName.trim(),
       description: formDescription.trim(),
+      basePrice: priceNum,
       price: priceNum,
-      listingPrice: formListingPrice ? parseFloat(formListingPrice) : undefined,
+      listingPrice: formListingPrice ? parseFloat(formListingPrice) : priceNum,
+      category: categoryName,
+      categoryName: categoryName,
       categoryId: formCategoryId || undefined,
       isVeg: formIsVeg,
       inStock: formInStock,
@@ -587,11 +603,15 @@ function RestaurantMenuContent() {
                     onChange={(e) => setFormCategoryId(e.target.value)}
                     className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20"
                   >
-                    {categories.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
+                    {categories.length > 0 ? (
+                      categories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="main-course">Main Course</option>
+                    )}
                   </select>
                 </div>
 
