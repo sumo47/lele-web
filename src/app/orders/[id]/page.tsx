@@ -20,6 +20,7 @@ import {
   apiCancelOrder,
   apiCreateReturnRequest,
 } from '@/lib/api';
+import UpiPaymentCard from '@/components/orders/UpiPaymentCard';
 import type { Order } from '@/lib/types';
 import { useAuth } from '@/context/AuthContext';
 
@@ -313,6 +314,9 @@ export default function OrderDetailPage({ params }: OrderDetailPageProps) {
           </div>
         )}
       </div>
+
+      {/* Manual UPI Payment / COD Status Box */}
+      <UpiPaymentCard order={order} onOrderUpdated={(updated) => setOrder(updated)} />
 
       {/* 2. Order Details & Bill */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

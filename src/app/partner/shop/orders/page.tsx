@@ -21,7 +21,9 @@ import { PartnerLayout } from '@/components/partner/PartnerLayout';
 import {
   apiGetMyShopOrders,
   apiUpdateSelfDeliveryStatus,
+  apiVerifyShopOrderPayment,
 } from '@/lib/api';
+import { CreditCard, Check, ShieldAlert } from 'lucide-react';
 import type { Order } from '@/lib/types';
 
 export default function ShopOrdersPage() {
@@ -82,6 +84,32 @@ function ShopOrdersContent() {
         type: 'error',
         text: err?.message || 'Failed to update delivery status.',
       });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleVerifyPayment = async (orderId: string, action: 'verify' | 'reject') => {
+    let rejectionReason: string | undefined = undefined;
+    if (action === 'reject') {
+      const reason = window.prompt('Please enter a reason for rejecting this payment (min 3 characters):');
+      if (!reason || reason.trim().length < 3) {
+        alert('Payment rejection requires a reason.');
+        return;
+      }
+      rejectionReason = reason.trim();
+    }
+
+    setUpdatingId(orderId);
+    try {
+      await apiVerifyShopOrderPayment(orderId, action, rejectionReason);
+      setFeedback({
+        type: 'success',
+        text: action === 'verify' ? 'Payment marked as verified (paid)!' : 'Payment marked as rejected.',
+      });
+      await loadOrders();
+    } catch (err: any) {
+      setFeedback({ type: 'error', text: err?.message || 'Failed to update payment status.' });
     } finally {
       setUpdatingId(null);
     }
@@ -244,6 +272,21 @@ function ShopOrdersContent() {
                             </>
                           )}
                         </span>
+                        {/* Payment Method Badge */}
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                            order.paymentStatus === 'paid'
+                              ? 'bg-emerald-50 text-emerald-800'
+                              : order.paymentStatus === 'failed'
+                              ? 'bg-red-50 text-red-800'
+                              : 'bg-amber-50 text-amber-800'
+                          }`}
+                        >
+                          <CreditCard className="w-3 h-3" />
+                          <span>
+                            {order.paymentMethod === 'UPI_MANUAL' ? 'UPI' : (order.paymentMethod || 'COD')}: {order.paymentStatus?.toUpperCase() || 'PENDING'}
+                          </span>
+                        </span>
                       </div>
                       <p className="text-[11px] text-gray-400 font-mono mt-1">
                         Ordered:{' '}
@@ -315,6 +358,37 @@ function ShopOrdersContent() {
                       ))}
                     </div>
                   </div>
+
+                  {/* Payment Verification for Shop Owner */}
+                  {order.paymentMethod === 'UPI_MANUAL' && (
+                    <div className="p-3 rounded-2xl bg-blue-50/50 border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div>
+                        <span className="font-bold text-gray-900 block">UPI Payment Status: {order.paymentStatus?.toUpperCase() || 'PENDING'}</span>
+                        <span className="text-[11px] text-gray-500 font-mono">
+                          Customer UTR: <strong className="text-gray-900">{order.paymentReference || 'Not yet submitted'}</strong>
+                        </span>
+                      </div>
+                      {order.paymentStatus !== 'paid' && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleVerifyPayment(order.id, 'verify')}
+                            disabled={updatingId === order.id}
+                            className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition flex items-center gap-1 shadow-2xs"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Verify Payment</span>
+                          </button>
+                          <button
+                            onClick={() => handleVerifyPayment(order.id, 'reject')}
+                            disabled={updatingId === order.id}
+                            className="px-3 py-1.5 rounded-xl bg-red-100 hover:bg-red-200 text-red-800 font-bold transition"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Self-Delivery Action Buttons */}
                   {isSelfDelivery && (

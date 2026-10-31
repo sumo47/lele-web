@@ -20,8 +20,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { apiGetAddresses, apiCreateAddress, apiCreateOrder, apiGetCart, apiAddToCart } from '@/lib/api';
-import type { CustomerAddress } from '@/lib/types';
+import { apiGetAddresses, apiCreateAddress, apiCreateOrder, apiGetCart, apiAddToCart, apiGetPaymentMethods } from '@/lib/api';
+import type { CustomerAddress, PaymentMethodConfig } from '@/lib/types';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -53,9 +53,22 @@ export default function CheckoutPage() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [cookingInstructions, setCookingInstructions] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI' | 'WALLET'>('COD');
+  const [paymentConfig, setPaymentConfig] = useState<PaymentMethodConfig | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI_MANUAL'>('COD');
 
   const [submittingOrder, setSubmittingOrder] = useState(false);
+
+  useEffect(() => {
+    async function loadPaymentConfig() {
+      try {
+        const cfg = await apiGetPaymentMethods();
+        setPaymentConfig(cfg);
+      } catch (err) {
+        console.error('Failed to load payment config:', err);
+      }
+    }
+    loadPaymentConfig();
+  }, []);
   const [orderError, setOrderError] = useState<string | null>(null);
 
   // Sync user details
@@ -171,14 +184,14 @@ export default function CheckoutPage() {
         customerPhone: customerPhone || '+918757962224',
         cookingInstructions: cookingInstructions.trim(),
         couponCode: appliedCoupon?.code,
-        paymentMethod: 'COD',
+        paymentMethod: paymentMethod === 'COD' ? 'COD' : 'UPI_MANUAL',
       });
 
       // Clear cart
       await clearCart();
 
-      // Navigate to order confirmation
-      router.push(`/order-success/${order.id}`);
+      // Navigate to order details
+      router.push(`/orders/${order.id}`);
     } catch (err: any) {
       console.error('Order creation failed:', err);
       setOrderError(err.message || 'Failed to place order. Please try again.');
@@ -448,27 +461,61 @@ export default function CheckoutPage() {
               </label>
 
               {/* UPI */}
-              <label className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 bg-gray-50/50 opacity-75">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="payMethod"
-                    disabled
-                    checked={false}
-                    className="text-gray-400"
-                  />
-                  <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
-                    <Smartphone className="w-4 h-4" />
+              {paymentConfig?.upi?.enabled ? (
+                <label
+                  className={`flex items-center justify-between p-4 rounded-2xl border cursor-pointer transition ${
+                    paymentMethod === 'UPI_MANUAL'
+                      ? 'border-blue-600 bg-blue-50/30 ring-1 ring-blue-600'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="payMethod"
+                      checked={paymentMethod === 'UPI_MANUAL'}
+                      onChange={() => setPaymentMethod('UPI_MANUAL')}
+                      className="text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-900">Manual UPI QR Payment</h3>
+                      <p className="text-[11px] text-gray-500">
+                        Pay via GPay, PhonePe, Paytm or BHIM to {paymentConfig.upi.merchantName || 'LELE Store'} ({paymentConfig.upi.upiId}) and submit reference
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xs font-bold text-gray-900">Online UPI / Payment Gateway</h3>
-                    <p className="text-[11px] text-gray-500">Unintegrated Gateway: Live Razorpay/Paytm gateway pending production webhook credentials</p>
+                  <span className="text-[10px] font-extrabold bg-blue-100 text-blue-800 px-2 py-0.5 rounded uppercase">
+                    Active
+                  </span>
+                </label>
+              ) : (
+                <label className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 bg-gray-50/50 opacity-75">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="payMethod"
+                      disabled
+                      checked={false}
+                      className="text-gray-400"
+                    />
+                    <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center">
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-gray-900">Manual UPI QR Payment</h3>
+                      <p className="text-[11px] text-gray-500">
+                        {paymentConfig?.upi?.message || 'Manual UPI payment is currently unavailable. Please choose Cash on Delivery.'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">
-                  Gateway Pending
-                </span>
-              </label>
+                  <span className="text-[10px] font-bold bg-gray-200 text-gray-700 px-2 py-0.5 rounded">
+                    Unavailable
+                  </span>
+                </label>
+              )}
 
               {/* Wallet */}
               <label className="flex items-center justify-between p-4 rounded-2xl border border-gray-200 bg-gray-50/50 opacity-75">

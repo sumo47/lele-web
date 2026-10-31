@@ -207,6 +207,13 @@ export interface Order {
   payment: {
     method: string;
     status: string;
+    reference?: string | null;
+    submittedAt?: string | null;
+    verifiedAt?: string | null;
+    verifiedBy?: string | null;
+    rejectedAt?: string | null;
+    rejectionReason?: string | null;
+    details?: Record<string, any>;
   };
   timestamps: {
     createdAt: string;
@@ -224,6 +231,32 @@ export interface Order {
   sellerDeliveredAt?: string | null;
   deliveredAt?: string | null;
   returnStatus?: 'none' | 'pending' | 'approved' | 'rejected' | 'completed' | string;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  paymentReference?: string | null;
+  paymentSubmittedAt?: string | null;
+  paymentVerifiedAt?: string | null;
+  paymentVerifiedBy?: string | null;
+  paymentRejectedAt?: string | null;
+  paymentRejectionReason?: string | null;
+  paymentDetails?: Record<string, any>;
+}
+
+export interface PaymentMethodConfig {
+  cod: {
+    enabled: boolean;
+    name: string;
+    description: string;
+  };
+  upi: {
+    enabled: boolean;
+    merchantName?: string;
+    upiId?: string;
+    qrImageUrl?: string | null;
+    instructions?: string;
+    availableFor?: string;
+    message?: string;
+  };
 }
 
 export interface ProductVariant {

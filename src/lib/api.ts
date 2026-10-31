@@ -17,6 +17,7 @@ import type {
   RiderOrder,
   RiderProfile,
   RiderDutyStatus,
+  PaymentMethodConfig,
 } from './types';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
@@ -431,6 +432,27 @@ export async function apiCancelOrder(
   });
 }
 
+export async function apiGetPaymentMethods(
+  restaurantId?: string,
+  businessType?: 'restaurant' | 'shop'
+): Promise<PaymentMethodConfig> {
+  const params = new URLSearchParams();
+  if (restaurantId) params.set('restaurantId', restaurantId);
+  if (businessType) params.set('businessType', businessType);
+  const qStr = params.toString() ? `?${params.toString()}` : '';
+  return fetchApi<PaymentMethodConfig>(`/config/payment-methods${qStr}`);
+}
+
+export async function apiSubmitPaymentReference(
+  orderId: string,
+  reference: string
+): Promise<Order> {
+  return fetchApi<Order>(`/orders/${encodeURIComponent(orderId)}/payment-reference`, {
+    method: 'POST',
+    body: JSON.stringify({ reference }),
+  });
+}
+
 // ==========================================
 // 5. MEDIA & UPLOAD
 // ==========================================
@@ -523,6 +545,17 @@ export async function apiRejectVendorOrder(
   return fetchApi<any>(`/vendor/orders/${encodeURIComponent(orderId)}/reject`, {
     method: 'POST',
     body: JSON.stringify({ reason }),
+  });
+}
+
+export async function apiVerifyVendorOrderPayment(
+  orderId: string,
+  action: 'verify' | 'reject',
+  rejectionReason?: string
+): Promise<any> {
+  return fetchApi<any>(`/vendor/orders/${encodeURIComponent(orderId)}/verify-payment`, {
+    method: 'POST',
+    body: JSON.stringify({ action, rejectionReason }),
   });
 }
 
@@ -914,6 +947,17 @@ export async function apiUpdateSelfDeliveryStatus(orderId: string, status: 'disp
   return fetchApi<any>(`/partner/shops/me/orders/${encodeURIComponent(orderId)}/self-delivery`, {
     method: 'PUT',
     body: JSON.stringify({ status }),
+  });
+}
+
+export async function apiVerifyShopOrderPayment(
+  orderId: string,
+  action: 'verify' | 'reject',
+  rejectionReason?: string
+): Promise<any> {
+  return fetchApi<any>(`/partner/shops/me/orders/${encodeURIComponent(orderId)}/verify-payment`, {
+    method: 'POST',
+    body: JSON.stringify({ action, rejectionReason }),
   });
 }
 
